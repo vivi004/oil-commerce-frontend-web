@@ -12,7 +12,7 @@
     "lint": "eslint src --fix",
     "format": "prettier --write \"src/**/*.{ts,html,scss}\"",
     "format:check": "prettier --check \"src/**/*.{ts,html,scss}\"",
-    "prepare": "husky"
+    "prepare": "husky || true"
   },
   "private": true,
   "packageManager": "npm@11.19.0",
