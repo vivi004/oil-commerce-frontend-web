@@ -47,7 +47,19 @@ import { AuthService } from '../../../core/services/auth.service';
         <div class="text-center p-5 animate-fade-in">
           <div class="text-[56px] mb-4">📬</div>
           <h3 class="text-xl font-bold font-['Outfit',sans-serif] text-stone-900 mb-2">Check your email</h3>
-          <p class="text-sm text-stone-600 mb-4">We sent a password reset link to <strong>{{ form.get('email')?.value }}</strong></p>
+          <p class="text-sm text-stone-600 mb-3">We sent a password reset link to <strong>{{ form.get('email')?.value }}</strong></p>
+
+          @if (directResetUrl) {
+            <div class="bg-amber-50 border border-amber-300 rounded-xl p-4 my-4 text-left shadow-sm">
+              <p class="text-xs font-bold text-amber-900 mb-1.5 flex items-center gap-1.5">
+                <span>⚡</span> Direct Reset Link:
+              </p>
+              <a [routerLink]="directResetUrl" class="text-sm text-amber-800 font-bold hover:underline flex items-center gap-1 break-all">
+                Click here to reset your password now &rarr;
+              </a>
+            </div>
+          }
+
           <button mat-button color="primary" (click)="emailSent = false">Resend email</button>
         </div>
       }
@@ -64,6 +76,7 @@ export class ForgotPasswordComponent {
   form: FormGroup;
   isLoading = false;
   emailSent = false;
+  directResetUrl: string | null = null;
 
   constructor(private fb: FormBuilder, private authService: AuthService, private toastr: ToastrService) {
     this.form = this.fb.group({ email: ['', [Validators.required, Validators.email]] });
@@ -73,8 +86,15 @@ export class ForgotPasswordComponent {
     if (this.form.invalid) return;
     this.isLoading = true;
     this.authService.forgotPassword(this.form.value).subscribe({
-      next: () => { this.isLoading = false; this.emailSent = true; },
-      error: (err) => { this.isLoading = false; this.toastr.error(err?.error?.message ?? 'Failed to send reset email.'); },
+      next: (data) => {
+        this.isLoading = false;
+        this.emailSent = true;
+        this.directResetUrl = data?.resetUrl ?? null;
+      },
+      error: (err) => {
+        this.isLoading = false;
+        this.toastr.error(err?.error?.message ?? 'Failed to send reset email.');
+      },
     });
   }
 }

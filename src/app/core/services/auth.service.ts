@@ -87,10 +87,10 @@ export class AuthService {
 
   // ── Password Management ───────────────────────────────────────────────────────
 
-  forgotPassword(request: ForgotPasswordRequest): Observable<void> {
+  forgotPassword(request: ForgotPasswordRequest): Observable<{ token?: string; resetUrl?: string } | null> {
     return this.api
-      .post<void>(API_ENDPOINTS.AUTH.FORGOT_PASSWORD, request)
-      .pipe(map(() => undefined));
+      .post<{ token?: string; resetUrl?: string }>(API_ENDPOINTS.AUTH.FORGOT_PASSWORD, request)
+      .pipe(map((res) => res.data ?? null));
   }
 
   resetPassword(request: ResetPasswordRequest): Observable<void> {
