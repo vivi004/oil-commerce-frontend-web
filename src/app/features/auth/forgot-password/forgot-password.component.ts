@@ -6,6 +6,7 @@ import { MatInputModule } from '@angular/material/input';
 import { MatButtonModule } from '@angular/material/button';
 import { MatIconModule } from '@angular/material/icon';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
+import { finalize } from 'rxjs';
 import { ToastrService } from 'ngx-toastr';
 import { AuthService } from '../../../core/services/auth.service';
 
@@ -85,16 +86,21 @@ export class ForgotPasswordComponent {
   onSubmit(): void {
     if (this.form.invalid) return;
     this.isLoading = true;
-    this.authService.forgotPassword(this.form.value).subscribe({
-      next: (data) => {
-        this.isLoading = false;
-        this.emailSent = true;
-        this.directResetUrl = data?.resetUrl ?? null;
-      },
-      error: (err) => {
-        this.isLoading = false;
-        this.toastr.error(err?.error?.message ?? 'Failed to send reset email.');
-      },
-    });
+    this.authService.forgotPassword(this.form.value)
+      .pipe(
+        finalize(() => {
+          this.isLoading = false;
+        })
+      )
+      .subscribe({
+        next: (data) => {
+          this.emailSent = true;
+          this.directResetUrl = data?.resetUrl ?? null;
+        },
+        error: (err) => {
+          const msg = err?.error?.message ?? err?.message ?? 'Failed to send reset email. The server may be waking up, please try again.';
+          this.toastr.error(msg);
+        },
+      });
   }
 }
