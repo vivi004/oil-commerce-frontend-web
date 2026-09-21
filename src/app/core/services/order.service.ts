@@ -12,112 +12,112 @@ const ORDERS_STORAGE_KEY = 'shopzone_orders_list';
 export const INITIAL_ORDERS: Order[] = [
   {
     id: 'ord-9821',
-    orderNumber: 'ORD-9821-2025',
+    orderNumber: 'ORD-9821-2026',
     userId: 'user-1',
     status: OrderStatus.SHIPPED,
     paymentStatus: PaymentStatus.SUCCESS,
-    paymentMethod: 'Credit Card (ending in 4242)',
+    paymentMethod: 'UPI (Google Pay)',
     items: [
       {
         id: 'oi-1',
         productId: 'prod-1',
-        productName: 'Sony WH-1000XM5 Wireless Headphones',
-        productImage: 'https://images.unsplash.com/photo-1505740420928-5e560c06d30e?w=700&auto=format&fit=crop&q=80',
-        sku: 'SNY-WH-XM5-BLK',
-        productSku: 'SNY-WH-XM5-BLK',
+        productName: 'Wood Pressed Groundnut Oil (Marachekku Kadalai Ennai)',
+        productImage: 'https://images.unsplash.com/photo-1474979266404-7eaacbcd87c5?w=700&auto=format&fit=crop&q=80',
+        sku: 'NPO-GNO-5L',
+        productSku: 'NPO-GNO-5L',
         quantity: 1,
-        unitPrice: 349.99,
-        totalPrice: 349.99
+        unitPrice: 1650.00,
+        totalPrice: 1650.00
       }
     ],
     shippingAddress: {
-      fullName: 'Alex Morgan',
-      phone: '+1 (555) 234-5678',
-      addressLine1: '742 Evergreen Terrace',
-      city: 'Springfield',
-      state: 'OR',
-      postalCode: '97477',
-      country: 'United States',
+      fullName: 'Kavitha Sundaram',
+      phone: '+91 98421 88442',
+      addressLine1: '42, Cross Cut Road, Gandhipuram',
+      city: 'Coimbatore',
+      state: 'Tamil Nadu',
+      postalCode: '641012',
+      country: 'India',
       isDefault: true
     },
-    subtotal: 349.99,
+    subtotal: 1650.00,
     shippingCost: 0,
-    taxAmount: 28.00,
+    taxAmount: 82.50,
     discountAmount: 0,
-    totalAmount: 377.99,
-    total: 377.99,
-    trackingNumber: 'TRK-USPS-849201948',
-    carrier: 'USPS Priority Express',
-    estimatedDelivery: '2025-02-15T18:00:00Z',
+    totalAmount: 1732.50,
+    total: 1732.50,
+    trackingNumber: 'TRK-ST-99482104',
+    carrier: 'ST Courier Priority',
+    estimatedDelivery: '2026-03-20T18:00:00Z',
     statusHistory: [
-      { status: OrderStatus.PENDING, timestamp: '2025-02-08T10:15:00Z', note: 'Order placed successfully' },
-      { status: OrderStatus.CONFIRMED, timestamp: '2025-02-08T10:30:00Z', note: 'Payment verified' },
-      { status: OrderStatus.PROCESSING, timestamp: '2025-02-09T08:00:00Z', note: 'Packed at distribution hub' },
-      { status: OrderStatus.SHIPPED, timestamp: '2025-02-09T14:20:00Z', note: 'In transit with USPS' }
+      { status: OrderStatus.PENDING, timestamp: '2026-03-15T10:15:00Z', note: 'Order placed successfully' },
+      { status: OrderStatus.CONFIRMED, timestamp: '2026-03-15T10:30:00Z', note: 'UPI Payment verified' },
+      { status: OrderStatus.PROCESSING, timestamp: '2026-03-16T08:00:00Z', note: 'Pressed fresh from Vaagai Mara Chekku' },
+      { status: OrderStatus.SHIPPED, timestamp: '2026-03-16T14:20:00Z', note: 'Handed over to ST Courier Coimbatore Hub' }
     ],
-    createdAt: '2025-02-08T10:15:00Z',
-    updatedAt: '2025-02-09T14:20:00Z'
+    createdAt: '2026-03-15T10:15:00Z',
+    updatedAt: '2026-03-16T14:20:00Z'
   },
   {
     id: 'ord-8419',
-    orderNumber: 'ORD-8419-2025',
+    orderNumber: 'ORD-8419-2026',
     userId: 'user-1',
     status: OrderStatus.DELIVERED,
     paymentStatus: PaymentStatus.SUCCESS,
-    paymentMethod: 'Apple Pay',
+    paymentMethod: 'Credit Card (ending in 4242)',
     items: [
       {
         id: 'oi-2',
-        productId: 'prod-4',
-        productName: 'Nike Air Zoom Pegasus 40 Running Shoes',
-        productImage: 'https://images.unsplash.com/photo-1542291026-7eec264c27ff?w=700&auto=format&fit=crop&q=80',
-        sku: 'NKE-PEG-40-WHT',
-        productSku: 'NKE-PEG-40-WHT',
-        quantity: 1,
-        unitPrice: 130.00,
-        totalPrice: 130.00
+        productId: 'prod-2',
+        productName: 'Cold Pressed Virgin Coconut Oil (Thengai Ennai)',
+        productImage: 'https://images.unsplash.com/photo-1526947425960-945c6e72858f?w=700&auto=format&fit=crop&q=80',
+        sku: 'NPO-VCO-1L',
+        productSku: 'NPO-VCO-1L',
+        quantity: 2,
+        unitPrice: 470.00,
+        totalPrice: 940.00
       },
       {
         id: 'oi-3',
-        productId: 'prod-7',
-        productName: 'Organic Vitamin C Glow Serum',
-        productImage: 'https://images.unsplash.com/photo-1620916566398-39f1143ab7be?w=700&auto=format&fit=crop&q=80',
-        sku: 'GLW-SRM-30ML',
-        productSku: 'GLW-SRM-30ML',
-        quantity: 2,
-        unitPrice: 38.00,
-        totalPrice: 76.00
+        productId: 'prod-3',
+        productName: 'Wood Pressed Sesame Oil (Gingelly / Nalla Ennai)',
+        productImage: 'https://images.unsplash.com/photo-1615485290382-441e4d049cb5?w=700&auto=format&fit=crop&q=80',
+        sku: 'NPO-SES-1L',
+        productSku: 'NPO-SES-1L',
+        quantity: 1,
+        unitPrice: 490.00,
+        totalPrice: 490.00
       }
     ],
     shippingAddress: {
-      fullName: 'Alex Morgan',
-      phone: '+1 (555) 234-5678',
-      addressLine1: '742 Evergreen Terrace',
-      city: 'Springfield',
-      state: 'OR',
-      postalCode: '97477',
-      country: 'United States',
+      fullName: 'Kavitha Sundaram',
+      phone: '+91 98421 88442',
+      addressLine1: '42, Cross Cut Road, Gandhipuram',
+      city: 'Coimbatore',
+      state: 'Tamil Nadu',
+      postalCode: '641012',
+      country: 'India',
       isDefault: true
     },
-    subtotal: 206.00,
+    subtotal: 1430.00,
     shippingCost: 0,
-    taxAmount: 16.48,
-    discountAmount: 20.00,
-    couponCode: 'SAVE20',
-    totalAmount: 202.48,
-    total: 202.48,
-    trackingNumber: 'TRK-FDX-99382104',
-    carrier: 'FedEx Ground',
-    deliveredAt: '2025-01-28T16:45:00Z',
+    taxAmount: 71.50,
+    discountAmount: 143.00,
+    couponCode: 'WELCOME10',
+    totalAmount: 1358.50,
+    total: 1358.50,
+    trackingNumber: 'TRK-EXP-88349210',
+    carrier: 'India Post Speed Post',
+    deliveredAt: '2026-03-12T16:45:00Z',
     statusHistory: [
-      { status: OrderStatus.PENDING, timestamp: '2025-01-25T11:00:00Z', note: 'Order placed' },
-      { status: OrderStatus.CONFIRMED, timestamp: '2025-01-25T11:15:00Z', note: 'Payment approved' },
-      { status: OrderStatus.PROCESSING, timestamp: '2025-01-26T09:00:00Z', note: 'Processing & packing' },
-      { status: OrderStatus.SHIPPED, timestamp: '2025-01-26T17:00:00Z', note: 'Shipped from hub' },
-      { status: OrderStatus.DELIVERED, timestamp: '2025-01-28T16:45:00Z', note: 'Package handed to resident' }
+      { status: OrderStatus.PENDING, timestamp: '2026-03-10T11:00:00Z', note: 'Order placed' },
+      { status: OrderStatus.CONFIRMED, timestamp: '2026-03-10T11:15:00Z', note: 'Payment approved' },
+      { status: OrderStatus.PROCESSING, timestamp: '2026-03-11T09:00:00Z', note: 'Packed at Erode distribution mill' },
+      { status: OrderStatus.SHIPPED, timestamp: '2026-03-11T17:00:00Z', note: 'Shipped from hub' },
+      { status: OrderStatus.DELIVERED, timestamp: '2026-03-12T16:45:00Z', note: 'Package handed to resident' }
     ],
-    createdAt: '2025-01-25T11:00:00Z',
-    updatedAt: '2025-01-28T16:45:00Z'
+    createdAt: '2026-03-10T11:00:00Z',
+    updatedAt: '2026-03-12T16:45:00Z'
   }
 ];
 
@@ -247,13 +247,46 @@ export class OrderService {
   }
 
   private loadOrders(): Order[] {
+    let orders = INITIAL_ORDERS;
     try {
       const data = localStorage.getItem(ORDERS_STORAGE_KEY);
-      if (data) return JSON.parse(data);
+      if (data) {
+        const parsed = JSON.parse(data);
+        if (Array.isArray(parsed) && parsed.length > 0) {
+          orders = parsed;
+        }
+      }
+
+      // Sync status/tracking from admin panel if present in browser storage
+      const adminOrdersRaw = localStorage.getItem('nisha_admin_orders_v1');
+      if (adminOrdersRaw) {
+        const adminOrders = JSON.parse(adminOrdersRaw);
+        if (Array.isArray(adminOrders)) {
+          const adminMap = new Map<string, any>();
+          for (const ao of adminOrders) {
+            if (ao.id) adminMap.set(ao.id, ao);
+            if (ao.orderNumber) adminMap.set(ao.orderNumber, ao);
+          }
+
+          orders = orders.map(ord => {
+            const adminMatch = adminMap.get(ord.id) || adminMap.get(ord.orderNumber);
+            if (adminMatch) {
+              return {
+                ...ord,
+                status: adminMatch.status || ord.status,
+                trackingNumber: adminMatch.trackingNumber || ord.trackingNumber,
+                carrier: adminMatch.carrier || ord.carrier,
+                updatedAt: adminMatch.updatedAt || ord.updatedAt
+              };
+            }
+            return ord;
+          });
+        }
+      }
     } catch (_err) {
       // Ignore JSON parse errors and return fallback
     }
-    return INITIAL_ORDERS;
+    return orders;
   }
 
   private saveOrders(orders: Order[]): void {

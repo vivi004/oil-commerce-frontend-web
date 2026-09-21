@@ -813,9 +813,105 @@ export const MOCK_PRODUCTS: Product[] = [
   },
 ];
 
+const SF_PRODUCTS_KEY = 'shopzone_products_v1';
+const SF_CATEGORIES_KEY = 'shopzone_categories_v1';
+
 @Injectable({ providedIn: 'root' })
 export class ProductService {
   private readonly api = inject(ApiService);
+
+  private getActiveProducts(): Product[] {
+    if (typeof window !== 'undefined') {
+      try {
+        const sfData = localStorage.getItem(SF_PRODUCTS_KEY);
+        if (sfData) {
+          const parsed = JSON.parse(sfData);
+          if (Array.isArray(parsed) && parsed.length > 0) return parsed;
+        }
+
+        // Cross-app sync: check if admin panel saved modified products
+        const adminData = localStorage.getItem('nisha_admin_products_v1');
+        if (adminData) {
+          const adminProducts = JSON.parse(adminData);
+          if (Array.isArray(adminProducts) && adminProducts.length > 0) {
+            // Map admin product changes (e.g. prices, stock) to storefront products
+            const adminMap = new Map<string, any>(adminProducts.map((p: any) => [p.id, p]));
+            const merged = MOCK_PRODUCTS.map(mockProd => {
+              const adminProd = adminMap.get(mockProd.id);
+              if (!adminProd) return mockProd;
+
+              // Synchronize price, stock, and enabled variants
+              const updatedVariants = mockProd.weightVariants?.map(wv => {
+                const matchingAdminVar = (adminProd.variants || []).find((v: any) => v.size === wv.code);
+                if (matchingAdminVar) {
+                  return {
+                    ...wv,
+                    price: matchingAdminVar.sellingPrice,
+                    compareAtPrice: matchingAdminVar.mrp || wv.compareAtPrice,
+                    stock: matchingAdminVar.stockQuantity,
+                    enabled: matchingAdminVar.isEnabled
+                  };
+                }
+                return wv;
+              });
+
+              return {
+                ...mockProd,
+                name: adminProd.name || mockProd.name,
+                description: adminProd.description || mockProd.description,
+                price: adminProd.minPrice || mockProd.price,
+                compareAtPrice: adminProd.maxPrice || mockProd.compareAtPrice,
+                stock: adminProd.totalStock ?? mockProd.stock,
+                weightVariants: updatedVariants || mockProd.weightVariants
+              };
+            });
+            return merged;
+          }
+        }
+      } catch (e) {
+        console.warn('Could not read stored products:', e);
+      }
+    }
+    return MOCK_PRODUCTS;
+  }
+
+  private persistLocalProducts(products: Product[]): void {
+    if (typeof window !== 'undefined') {
+      try {
+        localStorage.setItem(SF_PRODUCTS_KEY, JSON.stringify(products));
+      } catch (e) {
+        console.warn('Could not save storefront products:', e);
+      }
+    }
+  }
+
+  private getActiveCategories(): Category[] {
+    if (typeof window !== 'undefined') {
+      try {
+        const stored = localStorage.getItem(SF_CATEGORIES_KEY) || localStorage.getItem('nisha_admin_categories_v1');
+        if (stored) {
+          const parsed = JSON.parse(stored);
+          if (Array.isArray(parsed) && parsed.length > 0) {
+            // Convert to storefront category model if needed
+            return parsed.map((c: any) => ({
+              id: c.id,
+              name: c.name,
+              slug: c.slug || c.name.toLowerCase().replace(/\s+/g, '-'),
+              icon: c.icon || '🌾',
+              description: c.description || '',
+              productCount: c.productCount || 0,
+              isActive: c.isActive !== false,
+              sortOrder: c.sortOrder || 1,
+              createdAt: c.createdAt || '2025-01-01'
+            }));
+          }
+        }
+      } catch (e) {
+        console.warn('Could not read stored categories:', e);
+      }
+    }
+    return MOCK_CATEGORIES;
+  }
 
   getProducts(filter?: ProductFilter): Observable<PaginatedResponse<Product>> {
     return this.api
@@ -837,12 +933,14 @@ export class ProductService {
       .pipe(
         map((res) => {
           if (res?.data) return res.data;
-          const found = MOCK_PRODUCTS.find((p) => p.id === id || p.slug === id);
+          const prods = this.getActiveProducts();
+          const found = prods.find((p) => p.id === id || p.slug === id);
           if (found) return found;
           throw new Error(`Product with ID "${id}" not found`);
         }),
         catchError(() => {
-          const found = MOCK_PRODUCTS.find((p) => p.id === id || p.slug === id);
+          const prods = this.getActiveProducts();
+          const found = prods.find((p) => p.id === id || p.slug === id);
           if (found) return of(found);
           throw new Error(`Product with ID "${id}" not found`);
         }),
@@ -850,27 +948,27 @@ export class ProductService {
   }
 
   getFeaturedProducts(): Observable<Product[]> {
-    return of(MOCK_PRODUCTS.filter((p) => p.isFeatured));
+    return of(this.getActiveProducts().filter((p) => p.isFeatured));
   }
 
   getBestSellers(): Observable<Product[]> {
-    return of(MOCK_PRODUCTS.filter((p) => p.isBestSeller));
+    return of(this.getActiveProducts().filter((p) => p.isBestSeller));
   }
 
   getOnSaleProducts(): Observable<Product[]> {
-    return of(MOCK_PRODUCTS.filter((p) => p.isOnSale));
+    return of(this.getActiveProducts().filter((p) => p.isOnSale));
   }
 
   getCategories(): Observable<Category[]> {
     return this.api.get<Category[]>(API_ENDPOINTS.CATEGORIES.LIST).pipe(
-      map((res) => res.data),
-      catchError(() => of(MOCK_CATEGORIES)),
+      map((res) => (res.data && res.data.length > 0 ? res.data : this.getActiveCategories())),
+      catchError(() => of(this.getActiveCategories())),
     );
   }
 
   getProductsByBrand(brandName: string): Observable<Product[]> {
     return of(
-      MOCK_PRODUCTS.filter(
+      this.getActiveProducts().filter(
         (p) => p.brand?.toLowerCase() === brandName.toLowerCase(),
       ),
     );
@@ -880,7 +978,7 @@ export class ProductService {
     if (!query) return of([]);
     const q = query.toLowerCase();
     return of(
-      MOCK_PRODUCTS.filter(
+      this.getActiveProducts().filter(
         (p) =>
           p.name.toLowerCase().includes(q) ||
           p.description.toLowerCase().includes(q) ||
@@ -893,14 +991,15 @@ export class ProductService {
   // ── Admin Variant Availability Control ────────────────────────────────────
   /**
    * Toggles whether a specific weight variant is available (on/off)
-   * or updates its stock quantity in real-time.
+   * or updates its stock quantity in real-time and persists locally.
    */
   toggleProductVariant(
     productId: string,
     variantCode: WeightVariantCode,
     enabled: boolean,
   ): Observable<Product> {
-    const product = MOCK_PRODUCTS.find((p) => p.id === productId);
+    const products = this.getActiveProducts();
+    const product = products.find((p) => p.id === productId);
     if (!product || !product.weightVariants) {
       return of(product as Product);
     }
@@ -914,6 +1013,7 @@ export class ProductService {
         variant.stock = 50;
       }
     }
+    this.persistLocalProducts(products);
     return of({ ...product });
   }
 
@@ -922,19 +1022,21 @@ export class ProductService {
     variantCode: WeightVariantCode,
     stock: number,
   ): Observable<Product> {
-    const product = MOCK_PRODUCTS.find((p) => p.id === productId);
+    const products = this.getActiveProducts();
+    const product = products.find((p) => p.id === productId);
     if (product?.weightVariants) {
       const variant = product.weightVariants.find((v) => v.code === variantCode);
       if (variant) {
         variant.stock = stock;
         variant.enabled = stock > 0;
       }
+      this.persistLocalProducts(products);
     }
     return of({ ...product as Product });
   }
 
   private filterMockProducts(filter?: ProductFilter): PaginatedResponse<Product> {
-    let items = [...MOCK_PRODUCTS];
+    let items = [...this.getActiveProducts()];
 
     if (filter?.search) {
       const q = filter.search.toLowerCase();
