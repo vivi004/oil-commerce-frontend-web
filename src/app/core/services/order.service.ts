@@ -138,13 +138,13 @@ export class OrderService {
 
   private loadOrders(): Order[] {
     let orders: Order[] = [];
-    const demoIds = new Set(['ord-9821', 'ord-8419', 'ord-7612']);
+    const demoIds = new Set(['ord-9821', 'ord-8419', 'ord-7612', 'ord-8841', 'ord-8842', 'ord-8843']);
     try {
       const data = localStorage.getItem(ORDERS_STORAGE_KEY);
       if (data) {
         const parsed = JSON.parse(data);
         if (Array.isArray(parsed)) {
-          orders = parsed.filter(o => !demoIds.has(o.id));
+          orders = parsed.filter(o => !demoIds.has(o.id) && !o.orderNumber?.startsWith?.('NPO-2025-') && !o.orderNumber?.startsWith?.('DEMO-'));
           this.saveOrders(orders);
         }
       }
