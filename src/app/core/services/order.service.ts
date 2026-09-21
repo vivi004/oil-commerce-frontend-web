@@ -9,117 +9,7 @@ import { ApiService } from './api.service';
 
 const ORDERS_STORAGE_KEY = 'shopzone_orders_list';
 
-export const INITIAL_ORDERS: Order[] = [
-  {
-    id: 'ord-9821',
-    orderNumber: 'ORD-9821-2026',
-    userId: 'user-1',
-    status: OrderStatus.SHIPPED,
-    paymentStatus: PaymentStatus.SUCCESS,
-    paymentMethod: 'UPI (Google Pay)',
-    items: [
-      {
-        id: 'oi-1',
-        productId: 'prod-1',
-        productName: 'Wood Pressed Groundnut Oil (Marachekku Kadalai Ennai)',
-        productImage: 'https://images.unsplash.com/photo-1474979266404-7eaacbcd87c5?w=700&auto=format&fit=crop&q=80',
-        sku: 'NPO-GNO-5L',
-        productSku: 'NPO-GNO-5L',
-        quantity: 1,
-        unitPrice: 1650.00,
-        totalPrice: 1650.00
-      }
-    ],
-    shippingAddress: {
-      fullName: 'Kavitha Sundaram',
-      phone: '+91 98421 88442',
-      addressLine1: '42, Cross Cut Road, Gandhipuram',
-      city: 'Coimbatore',
-      state: 'Tamil Nadu',
-      postalCode: '641012',
-      country: 'India',
-      isDefault: true
-    },
-    subtotal: 1650.00,
-    shippingCost: 0,
-    taxAmount: 82.50,
-    discountAmount: 0,
-    totalAmount: 1732.50,
-    total: 1732.50,
-    trackingNumber: 'TRK-ST-99482104',
-    carrier: 'ST Courier Priority',
-    estimatedDelivery: '2026-03-20T18:00:00Z',
-    statusHistory: [
-      { status: OrderStatus.PENDING, timestamp: '2026-03-15T10:15:00Z', note: 'Order placed successfully' },
-      { status: OrderStatus.CONFIRMED, timestamp: '2026-03-15T10:30:00Z', note: 'UPI Payment verified' },
-      { status: OrderStatus.PROCESSING, timestamp: '2026-03-16T08:00:00Z', note: 'Pressed fresh from Vaagai Mara Chekku' },
-      { status: OrderStatus.SHIPPED, timestamp: '2026-03-16T14:20:00Z', note: 'Handed over to ST Courier Coimbatore Hub' }
-    ],
-    createdAt: '2026-03-15T10:15:00Z',
-    updatedAt: '2026-03-16T14:20:00Z'
-  },
-  {
-    id: 'ord-8419',
-    orderNumber: 'ORD-8419-2026',
-    userId: 'user-1',
-    status: OrderStatus.DELIVERED,
-    paymentStatus: PaymentStatus.SUCCESS,
-    paymentMethod: 'Credit Card (ending in 4242)',
-    items: [
-      {
-        id: 'oi-2',
-        productId: 'prod-2',
-        productName: 'Cold Pressed Virgin Coconut Oil (Thengai Ennai)',
-        productImage: 'https://images.unsplash.com/photo-1526947425960-945c6e72858f?w=700&auto=format&fit=crop&q=80',
-        sku: 'NPO-VCO-1L',
-        productSku: 'NPO-VCO-1L',
-        quantity: 2,
-        unitPrice: 470.00,
-        totalPrice: 940.00
-      },
-      {
-        id: 'oi-3',
-        productId: 'prod-3',
-        productName: 'Wood Pressed Sesame Oil (Gingelly / Nalla Ennai)',
-        productImage: 'https://images.unsplash.com/photo-1615485290382-441e4d049cb5?w=700&auto=format&fit=crop&q=80',
-        sku: 'NPO-SES-1L',
-        productSku: 'NPO-SES-1L',
-        quantity: 1,
-        unitPrice: 490.00,
-        totalPrice: 490.00
-      }
-    ],
-    shippingAddress: {
-      fullName: 'Kavitha Sundaram',
-      phone: '+91 98421 88442',
-      addressLine1: '42, Cross Cut Road, Gandhipuram',
-      city: 'Coimbatore',
-      state: 'Tamil Nadu',
-      postalCode: '641012',
-      country: 'India',
-      isDefault: true
-    },
-    subtotal: 1430.00,
-    shippingCost: 0,
-    taxAmount: 71.50,
-    discountAmount: 143.00,
-    couponCode: 'WELCOME10',
-    totalAmount: 1358.50,
-    total: 1358.50,
-    trackingNumber: 'TRK-EXP-88349210',
-    carrier: 'India Post Speed Post',
-    deliveredAt: '2026-03-12T16:45:00Z',
-    statusHistory: [
-      { status: OrderStatus.PENDING, timestamp: '2026-03-10T11:00:00Z', note: 'Order placed' },
-      { status: OrderStatus.CONFIRMED, timestamp: '2026-03-10T11:15:00Z', note: 'Payment approved' },
-      { status: OrderStatus.PROCESSING, timestamp: '2026-03-11T09:00:00Z', note: 'Packed at Erode distribution mill' },
-      { status: OrderStatus.SHIPPED, timestamp: '2026-03-11T17:00:00Z', note: 'Shipped from hub' },
-      { status: OrderStatus.DELIVERED, timestamp: '2026-03-12T16:45:00Z', note: 'Package handed to resident' }
-    ],
-    createdAt: '2026-03-10T11:00:00Z',
-    updatedAt: '2026-03-12T16:45:00Z'
-  }
-];
+export const INITIAL_ORDERS: Order[] = [];
 
 @Injectable({ providedIn: 'root' })
 export class OrderService {
@@ -247,13 +137,15 @@ export class OrderService {
   }
 
   private loadOrders(): Order[] {
-    let orders = INITIAL_ORDERS;
+    let orders: Order[] = [];
+    const demoIds = new Set(['ord-9821', 'ord-8419', 'ord-7612']);
     try {
       const data = localStorage.getItem(ORDERS_STORAGE_KEY);
       if (data) {
         const parsed = JSON.parse(data);
-        if (Array.isArray(parsed) && parsed.length > 0) {
-          orders = parsed;
+        if (Array.isArray(parsed)) {
+          orders = parsed.filter(o => !demoIds.has(o.id));
+          this.saveOrders(orders);
         }
       }
 
