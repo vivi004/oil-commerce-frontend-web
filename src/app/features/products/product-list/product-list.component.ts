@@ -59,6 +59,20 @@ import { EmptyStateComponent } from '../../../shared/components/empty-state/empt
               >
                 <span class="text-[13.5px] font-semibold text-stone-900">⭐ Varshini Gold</span>
               </mat-checkbox>
+              <mat-checkbox
+                [checked]="isBrandSelected('Roshini Gold')"
+                (change)="toggleBrand('Roshini Gold', $event.checked)"
+                color="primary"
+              >
+                <span class="text-[13.5px] font-semibold text-stone-900">🌻 Roshini Gold</span>
+              </mat-checkbox>
+              <mat-checkbox
+                [checked]="isBrandSelected('Rosi Gold')"
+                (change)="toggleBrand('Rosi Gold', $event.checked)"
+                color="primary"
+              >
+                <span class="text-[13.5px] font-semibold text-stone-900">🌴 Rosi Gold</span>
+              </mat-checkbox>
             </div>
           </div>
 
@@ -246,6 +260,20 @@ import { EmptyStateComponent } from '../../../shared/components/empty-state/empt
                     color="primary"
                   >
                     <span class="text-sm font-semibold text-stone-900">⭐ Varshini Gold</span>
+                  </mat-checkbox>
+                  <mat-checkbox
+                    [checked]="isBrandSelected('Roshini Gold')"
+                    (change)="toggleBrand('Roshini Gold', $event.checked)"
+                    color="primary"
+                  >
+                    <span class="text-sm font-semibold text-stone-900">🌻 Roshini Gold</span>
+                  </mat-checkbox>
+                  <mat-checkbox
+                    [checked]="isBrandSelected('Rosi Gold')"
+                    (change)="toggleBrand('Rosi Gold', $event.checked)"
+                    color="primary"
+                  >
+                    <span class="text-sm font-semibold text-stone-900">🌴 Rosi Gold</span>
                   </mat-checkbox>
                 </div>
               </div>

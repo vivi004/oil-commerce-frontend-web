@@ -17,10 +17,10 @@ import { ProductCardComponent } from '../../shared/components/product-card/produ
             Our Brand Portfolio
           </span>
           <h1 class="font-['Outfit',sans-serif] text-3xl sm:text-4xl lg:text-5xl font-extrabold mb-4 leading-tight text-white" style="color: #ffffff !important;">
-            Two Trusted Brands for Every Kitchen
+            Trusted Oil Brands for Every Kitchen
           </h1>
           <p class="text-sm sm:text-base text-stone-300 max-w-2xl mx-auto leading-relaxed">
-            From traditional Vaagai wood cold-pressed virgin oils to everyday culinary cooking oils, our Kangeyam mill ensures 100% purity and unmatched farm freshness.
+            From traditional Vaagai wood cold-pressed virgin oils to everyday culinary cooking oils, our Kangeyam mills ensure 100% purity, unmatched aroma, and wholesome health.
           </p>
         </div>
       </section>
@@ -67,6 +67,32 @@ import { ProductCardComponent } from '../../shared/components/product-card/produ
           >
             ⭐ Varshini Gold
           </button>
+          <button
+            class="px-5 py-2 rounded-full border-2 text-xs sm:text-sm font-bold cursor-pointer transition-all duration-200"
+            [class.bg-amber-700]="selectedBrand() === 'Roshini Gold'"
+            [class.text-white]="selectedBrand() === 'Roshini Gold'"
+            [class.border-amber-700]="selectedBrand() === 'Roshini Gold'"
+            [class.shadow-sm]="selectedBrand() === 'Roshini Gold'"
+            [class.border-stone-200]="selectedBrand() !== 'Roshini Gold'"
+            [class.bg-stone-50]="selectedBrand() !== 'Roshini Gold'"
+            [class.text-stone-700]="selectedBrand() !== 'Roshini Gold'"
+            (click)="selectBrand('Roshini Gold')"
+          >
+            🌻 Roshini Gold
+          </button>
+          <button
+            class="px-5 py-2 rounded-full border-2 text-xs sm:text-sm font-bold cursor-pointer transition-all duration-200"
+            [class.bg-amber-700]="selectedBrand() === 'Rosi Gold'"
+            [class.text-white]="selectedBrand() === 'Rosi Gold'"
+            [class.border-amber-700]="selectedBrand() === 'Rosi Gold'"
+            [class.shadow-sm]="selectedBrand() === 'Rosi Gold'"
+            [class.border-stone-200]="selectedBrand() !== 'Rosi Gold'"
+            [class.bg-stone-50]="selectedBrand() !== 'Rosi Gold'"
+            [class.text-stone-700]="selectedBrand() !== 'Rosi Gold'"
+            (click)="selectBrand('Rosi Gold')"
+          >
+            🌴 Rosi Gold
+          </button>
         </div>
       </section>
 
@@ -80,7 +106,7 @@ import { ProductCardComponent } from '../../shared/components/product-card/produ
               </span>
               <h2 class="font-['Outfit',sans-serif] text-2xl sm:text-3xl font-extrabold mb-2" style="color: #ffffff !important;">Nisha Pure Oils</h2>
               <p class="text-stone-300 text-sm leading-relaxed mb-5 max-w-3xl">
-                100% Vaagai wood pressed below 40°C. Raw virgin groundnut, cold-pressed coconut, traditional gingelly with palm jaggery, pure castor, and sacred Pancha Deepa lamp oil.
+                100% Vaagai wood pressed below 40°C. Raw virgin groundnut, cold-pressed coconut, traditional gingelly with palm jaggery, pure castor, neem seed, mahua, and sacred Pancha Deepam lamp oil.
               </p>
               <div class="flex gap-4 text-xs font-bold text-amber-300 flex-wrap">
                 <span>✓ 100% Raw Virgin Cold Pressed</span>
@@ -97,12 +123,46 @@ import { ProductCardComponent } from '../../shared/components/product-card/produ
               </span>
               <h2 class="font-['Outfit',sans-serif] text-2xl sm:text-3xl font-extrabold text-amber-950 mb-2">Varshini Gold</h2>
               <p class="text-stone-700 text-sm leading-relaxed mb-5 max-w-3xl">
-                High-performance culinary oils formulated for high heat stability, crisp frying, low oil absorption, and everyday wholesome family cooking.
+                High-performance culinary multi-seed blended edible cooking oil formulated for high heat stability, crisp frying, low oil absorption, and everyday wholesome family cooking.
               </p>
               <div class="flex gap-4 text-xs font-bold text-amber-900 flex-wrap">
                 <span>✓ High Smoke Point</span>
                 <span>✓ Ultra-Crisp Non-Greasy Frying</span>
-                <span>✓ Enriched with Vitamins</span>
+                <span>✓ Traditional Multi-Seed Blend</span>
+              </div>
+            </div>
+          }
+
+          @if (selectedBrand() === 'Roshini Gold') {
+            <div class="rounded-3xl p-6 sm:p-9 bg-gradient-to-br from-yellow-50 via-[#fffef5] to-amber-100 border border-yellow-300/80 text-stone-900 shadow-md mb-8 animate-fade-in">
+              <span class="text-[11px] font-extrabold bg-yellow-800 text-yellow-100 px-3.5 py-1 rounded-full inline-block mb-3.5 uppercase tracking-wider">
+                Refined Sunflower Line
+              </span>
+              <h2 class="font-['Outfit',sans-serif] text-2xl sm:text-3xl font-extrabold text-stone-900 mb-2">Roshini Gold</h2>
+              <p class="text-stone-700 text-sm leading-relaxed mb-5 max-w-3xl">
+                Pure refined sunflower oil rich in Vitamin E with high smoke point for effortless deep frying, curries, and light everyday cooking.
+              </p>
+              <div class="flex gap-4 text-xs font-bold text-amber-900 flex-wrap">
+                <span>✓ Rich in Natural Vitamin E</span>
+                <span>✓ High Smoke Point for Sauté &amp; Frying</span>
+                <span>✓ Light &amp; Digestible</span>
+              </div>
+            </div>
+          }
+
+          @if (selectedBrand() === 'Rosi Gold') {
+            <div class="rounded-3xl p-6 sm:p-9 bg-gradient-to-br from-orange-50 via-[#fffaf5] to-amber-100 border border-orange-300/80 text-stone-900 shadow-md mb-8 animate-fade-in">
+              <span class="text-[11px] font-extrabold bg-orange-800 text-orange-100 px-3.5 py-1 rounded-full inline-block mb-3.5 uppercase tracking-wider">
+                Culinary Palm Olein
+              </span>
+              <h2 class="font-['Outfit',sans-serif] text-2xl sm:text-3xl font-extrabold text-stone-900 mb-2">Rosi Gold</h2>
+              <p class="text-stone-700 text-sm leading-relaxed mb-5 max-w-3xl">
+                Natural refined culinary palm olein oil ideal for high-temperature commercial and household cooking, snacks preparation, and traditional delicacies.
+              </p>
+              <div class="flex gap-4 text-xs font-bold text-orange-950 flex-wrap">
+                <span>✓ High Heat Stability</span>
+                <span>✓ Wholesome Frying Value</span>
+                <span>✓ 100% Vegetable Source</span>
               </div>
             </div>
           }

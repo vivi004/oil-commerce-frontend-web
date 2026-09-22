@@ -45,7 +45,7 @@ export interface Product {
   categoryId: string;
   category?: Category;
   tags?: string[];
-  brand?: 'Nisha Pure Oils' | 'Varshini Gold' | string;
+  brand?: 'Nisha Pure Oils' | 'Varshini Gold' | 'Roshini Gold' | 'Rosi Gold' | string;
   attributes?: ProductAttribute[];
   variants?: ProductVariant[];
   weightVariants?: WeightVariant[];
