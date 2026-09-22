@@ -14,10 +14,24 @@ import { EmptyStateComponent } from '../../../shared/components/empty-state/empt
   imports: [RouterLink, SlicePipe, MatButtonModule, MatIconModule, MatChipsModule, EmptyStateComponent],
   template: `
     <div class="page-container section-padding">
-      <div class="mb-8 sm:mb-10">
-        <span class="text-xs font-extrabold uppercase tracking-wider text-amber-700 block mb-1">Purchase History</span>
-        <h1 class="font-['Outfit',sans-serif] text-2xl sm:text-3xl lg:text-4xl font-extrabold text-stone-900 m-0">My Orders</h1>
-        <p class="text-sm sm:text-base text-stone-500 mt-1">Track, return, or buy again from your previous cold-pressed oil orders</p>
+      <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-8 sm:mb-10">
+        <div>
+          <span class="text-xs font-extrabold uppercase tracking-wider text-amber-700 block mb-1">Purchase History</span>
+          <h1 class="font-['Outfit',sans-serif] text-2xl sm:text-3xl lg:text-4xl font-extrabold text-stone-900 m-0">My Orders</h1>
+          <p class="text-sm sm:text-base text-stone-500 mt-1">Track, return, or buy again from your previous cold-pressed oil orders</p>
+        </div>
+        <div>
+          <button
+            type="button"
+            (click)="syncLive()"
+            [disabled]="orderService.isSyncing()"
+            class="px-4 py-2.5 rounded-full border border-stone-300 bg-white hover:bg-stone-50 text-stone-800 font-bold text-xs flex items-center gap-2 shadow-xs transition-colors disabled:opacity-60 cursor-pointer"
+            title="Sync latest order status & dispatch tracking"
+          >
+            <mat-icon class="!w-4 !h-4 !text-base text-amber-600" [class.animate-spin]="orderService.isSyncing()">sync</mat-icon>
+            <span>{{ orderService.isSyncing() ? 'Syncing...' : 'Sync Live' }}</span>
+          </button>
+        </div>
       </div>
 
       @if (orders().length > 0) {
@@ -104,11 +118,15 @@ import { EmptyStateComponent } from '../../../shared/components/empty-state/empt
   styles: [],
 })
 export class OrderListComponent implements OnInit {
-  private readonly orderService = inject(OrderService);
+  readonly orderService = inject(OrderService);
   readonly orders = signal<Order[]>([]);
 
   ngOnInit(): void {
-    this.orderService.getOrders().subscribe(res => {
+    this.syncLive();
+  }
+
+  syncLive(): void {
+    this.orderService.syncLiveOrders().subscribe(res => {
       this.orders.set(res);
     });
   }

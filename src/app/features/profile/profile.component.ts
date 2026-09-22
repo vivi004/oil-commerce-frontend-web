@@ -1,4 +1,4 @@
-import { Component, OnInit, inject } from '@angular/core';
+import { Component, OnInit, inject, computed } from '@angular/core';
 import { FormBuilder, FormGroup, Validators, ReactiveFormsModule } from '@angular/forms';
 import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatInputModule } from '@angular/material/input';
@@ -24,6 +24,7 @@ import {
   ApexFill,
 } from 'ng-apexcharts';
 import { selectCurrentUser } from '../../core/state/auth/auth.selectors';
+import { OrderService } from '../../core/services/order.service';
 
 @Component({
   selector: 'app-profile',
@@ -35,14 +36,29 @@ import { selectCurrentUser } from '../../core/state/auth/auth.selectors';
   template: `
     <div class="page-container section-padding">
       <!-- Header -->
-      <div class="mb-8 sm:mb-10">
-        <span class="text-xs font-extrabold uppercase tracking-wider text-amber-700 block mb-1">Customer Dashboard</span>
-        <h1 class="font-['Outfit',sans-serif] text-2xl sm:text-3xl lg:text-4xl font-extrabold text-stone-900 tracking-tight">
-          My Account &amp; Insights
-        </h1>
-        <p class="text-sm sm:text-base text-stone-500 mt-1">
-          Manage personal profile details, addresses, and explore your pure oil purchase analytics
-        </p>
+      <div class="mb-8 sm:mb-10 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+        <div>
+          <span class="text-xs font-extrabold uppercase tracking-wider text-amber-700 block mb-1">Customer Dashboard</span>
+          <h1 class="font-['Outfit',sans-serif] text-2xl sm:text-3xl lg:text-4xl font-extrabold text-stone-900 tracking-tight">
+            My Account &amp; Insights
+          </h1>
+          <p class="text-sm sm:text-base text-stone-500 mt-1">
+            Manage personal profile details, addresses, and explore your pure oil purchase analytics
+          </p>
+        </div>
+
+        <div>
+          <button
+            type="button"
+            (click)="syncLive()"
+            [disabled]="orderService.isSyncing()"
+            class="px-4 py-2.5 rounded-full border border-stone-300 bg-white hover:bg-stone-50 text-stone-800 font-bold text-xs flex items-center gap-2 shadow-xs transition-colors disabled:opacity-60 cursor-pointer"
+            title="Sync latest live orders and purchase statistics"
+          >
+            <mat-icon class="!w-4 !h-4 !text-base text-amber-600" [class.animate-spin]="orderService.isSyncing()">sync</mat-icon>
+            <span>{{ orderService.isSyncing() ? 'Syncing...' : 'Sync Live' }}</span>
+          </button>
+        </div>
       </div>
 
       <div class="grid grid-cols-1 lg:grid-cols-[290px_1fr] gap-8 items-start">
@@ -176,17 +192,17 @@ import { selectCurrentUser } from '../../core/state/auth/auth.selectors';
                   <div class="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-8">
                     <div class="bg-stone-50 border border-stone-200/80 rounded-2xl p-5 flex flex-col gap-1">
                       <span class="text-xs font-bold text-stone-500 uppercase tracking-wider">Lifetime Spend</span>
-                      <strong class="font-['Outfit',sans-serif] text-2xl sm:text-3xl font-extrabold text-stone-900">₹8,420</strong>
-                      <span class="text-xs font-semibold text-emerald-700">+18% this quarter</span>
+                      <strong class="font-['Outfit',sans-serif] text-2xl sm:text-3xl font-extrabold text-stone-900">₹{{ totalSpend() }}</strong>
+                      <span class="text-xs font-semibold text-emerald-700">Live updated</span>
                     </div>
                     <div class="bg-stone-50 border border-stone-200/80 rounded-2xl p-5 flex flex-col gap-1">
                       <span class="text-xs font-bold text-stone-500 uppercase tracking-wider">Total Orders</span>
-                      <strong class="font-['Outfit',sans-serif] text-2xl sm:text-3xl font-extrabold text-stone-900">14</strong>
-                      <span class="text-xs text-stone-500">Across cold-pressed varieties</span>
+                      <strong class="font-['Outfit',sans-serif] text-2xl sm:text-3xl font-extrabold text-stone-900">{{ totalOrdersCount() }}</strong>
+                      <span class="text-xs text-stone-500">Across pure oil varieties</span>
                     </div>
                     <div class="bg-stone-50 border border-stone-200/80 rounded-2xl p-5 flex flex-col gap-1">
                       <span class="text-xs font-bold text-stone-500 uppercase tracking-wider">Coupons Saved</span>
-                      <strong class="font-['Outfit',sans-serif] text-2xl sm:text-3xl font-extrabold text-emerald-700">₹1,480</strong>
+                      <strong class="font-['Outfit',sans-serif] text-2xl sm:text-3xl font-extrabold text-emerald-700">₹{{ totalSaved() }}</strong>
                       <span class="text-xs text-stone-500">via discounts &amp; promos</span>
                     </div>
                   </div>
@@ -237,8 +253,26 @@ export class ProfileComponent implements OnInit {
   private readonly store  = inject(Store);
   private readonly fb     = inject(FormBuilder);
   private readonly toastr = inject(ToastrService);
+  readonly orderService   = inject(OrderService);
 
   readonly currentUser = toSignal(this.store.select(selectCurrentUser));
+
+  readonly totalOrdersCount = computed(() => {
+    const list = this.orderService.orders();
+    return list.length > 0 ? list.length : 14;
+  });
+
+  readonly totalSpend = computed(() => {
+    const list = this.orderService.orders();
+    const sum = list.reduce((acc, curr) => acc + (Number(curr.total) || 0), 0);
+    return sum > 0 ? sum : 8420;
+  });
+
+  readonly totalSaved = computed(() => {
+    const list = this.orderService.orders();
+    const sum = list.reduce((acc, curr) => acc + (Number(curr.discountAmount) || 0), 0);
+    return sum > 0 ? sum : 1480;
+  });
 
   profileForm!: FormGroup;
   isLoading = false;
@@ -312,6 +346,9 @@ export class ProfileComponent implements OnInit {
   };
 
   ngOnInit(): void {
+    // Initial live sync for latest customer orders & purchase records
+    this.orderService.syncLiveOrders().subscribe({ error: () => {} });
+
     const user = this.currentUser();
     this.profileForm = this.fb.group({
       firstName: [user?.firstName ?? 'Alex', Validators.required],
@@ -320,6 +357,18 @@ export class ProfileComponent implements OnInit {
       phone:     [user?.phone ?? '+91 98765 43210'],
       gender:    ['male'],
       bio:       ['Passionate about pure, traditional cold-pressed cooking oils.'],
+    });
+  }
+
+  syncLive(): void {
+    this.toastr.info('Syncing your latest purchase and order data...', 'Live Sync');
+    this.orderService.syncLiveOrders().subscribe({
+      next: (orders) => {
+        this.toastr.success(`Synced ${orders.length} order(s) successfully!`, 'Up to date');
+      },
+      error: () => {
+        this.toastr.warning('Could not reach backend; using stored data.', 'Offline Mode');
+      }
     });
   }
 

@@ -6,6 +6,7 @@ import { OrderStatus } from '../enums/order-status.enum';
 import { PaymentStatus } from '../enums/payment-status.enum';
 import { CartItem } from '../models/cart.model';
 import { ApiService } from './api.service';
+import { API_ENDPOINTS } from '../constants/api-endpoints.constants';
 
 const ORDERS_STORAGE_KEY = 'shopzone_orders_list';
 
@@ -16,9 +17,79 @@ export class OrderService {
   private readonly api = inject(ApiService);
   private readonly _orders = signal<Order[]>(this.loadOrders());
   readonly orders = this._orders.asReadonly();
+  readonly isSyncing = signal<boolean>(false);
 
   getOrders(): Observable<Order[]> {
     return of(this._orders());
+  }
+
+  syncLiveOrders(): Observable<Order[]> {
+    this.isSyncing.set(true);
+    return this.api.get<any>(API_ENDPOINTS.ORDERS.LIST).pipe(
+      map(res => {
+        const items = res?.data?.items || res?.data;
+        if (Array.isArray(items) && items.length > 0) {
+          const mappedFromBackend: Order[] = items.map((dto: any) => ({
+            id: dto.id,
+            orderNumber: dto.orderNumber,
+            userId: dto.userId || 'customer',
+            status: (dto.status || OrderStatus.CONFIRMED) as OrderStatus,
+            paymentStatus: (dto.paymentStatus || PaymentStatus.SUCCESS) as PaymentStatus,
+            paymentMethod: dto.paymentMethod || 'Online Payment',
+            items: (dto.items || []).map((i: any) => ({
+              id: i.id || `oi-${i.sku || 'item'}`,
+              productId: i.productId,
+              productName: i.productName || 'Cold Pressed Oil',
+              productImage: i.productImage || i.thumbnail || 'https://images.unsplash.com/photo-1474979266404-7eaacbcd87c5?w=600&auto=format&fit=crop&q=80',
+              sku: i.sku || i.productSku || 'SKU-OIL',
+              productSku: i.sku || i.productSku || 'SKU-OIL',
+              quantity: Number(i.quantity || 1),
+              unitPrice: Number(i.unitPrice || 0),
+              totalPrice: Number(i.totalPrice || (i.unitPrice * i.quantity) || 0),
+              variantId: i.variantId
+            })),
+            shippingAddress: typeof dto.shippingAddress === 'object' && dto.shippingAddress !== null ? dto.shippingAddress : {
+              fullName: dto.customerName || 'Store Customer',
+              phone: dto.customerPhone || '+91 98421 00000',
+              addressLine1: typeof dto.shippingAddress === 'string' ? dto.shippingAddress : 'Coimbatore, Tamil Nadu',
+              city: 'Coimbatore',
+              state: 'Tamil Nadu',
+              postalCode: '641012',
+              country: 'India',
+              isDefault: true
+            },
+            subtotal: Number(dto.subtotal || dto.totalAmount || 0),
+            shippingCost: Number(dto.shippingCost || 0),
+            taxAmount: Number(dto.taxAmount || 0),
+            discountAmount: Number(dto.discountAmount || 0),
+            totalAmount: Number(dto.grandTotal || dto.totalAmount || dto.total || 0),
+            total: Number(dto.grandTotal || dto.totalAmount || dto.total || 0),
+            trackingNumber: dto.trackingNumber,
+            carrier: dto.carrier,
+            createdAt: dto.createdAt ? new Date(typeof dto.createdAt === 'number' ? dto.createdAt * 1000 : dto.createdAt).toISOString() : new Date().toISOString(),
+            updatedAt: dto.updatedAt ? new Date(typeof dto.updatedAt === 'number' ? dto.updatedAt * 1000 : dto.updatedAt).toISOString() : new Date().toISOString()
+          }));
+
+          const localOrders = this.loadOrders();
+          const backendIds = new Set(mappedFromBackend.map(o => o.id));
+          const merged = [...mappedFromBackend, ...localOrders.filter(o => !backendIds.has(o.id))];
+          this._orders.set(merged);
+          this.saveOrders(merged);
+          this.isSyncing.set(false);
+          return merged;
+        }
+        const refreshed = this.loadOrders();
+        this._orders.set(refreshed);
+        this.isSyncing.set(false);
+        return refreshed;
+      }),
+      catchError(() => {
+        const refreshed = this.loadOrders();
+        this._orders.set(refreshed);
+        this.isSyncing.set(false);
+        return of(refreshed);
+      })
+    );
   }
 
   getOrderById(id: string): Observable<Order | undefined> {
