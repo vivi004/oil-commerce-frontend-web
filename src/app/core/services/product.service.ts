@@ -312,8 +312,9 @@ export class ProductService {
       ? p.weightVariants.map((v: any) => ({
         code: (v.code || v.name || v.size || '1L') as WeightVariantCode,
         label: v.name || v.label || `${v.code || '1L'} Bottle`,
-        price: Number(v.price || 0),
-        compareAtPrice: v.compareAtPrice ? Number(v.compareAtPrice) : undefined,
+        // Backend DTO uses sellingPrice; fall back to price for legacy data
+        price: Number(v.sellingPrice || v.price || 0),
+        compareAtPrice: v.mrp ? Number(v.mrp) : (v.compareAtPrice ? Number(v.compareAtPrice) : undefined),
         stock: Number(v.stock ?? v.stockQuantity ?? 0),
         enabled: v.enabled !== false && v.isEnabled !== false,
         sku: v.sku || ''
@@ -326,9 +327,9 @@ export class ProductService {
       slug: p.slug || (p.name ? p.name.toLowerCase().replace(/\s+/g, '-') : ''),
       description: p.description || '',
       shortDescription: p.shortDescription || p.description?.slice(0, 150) || '',
-      price: Number(p.price || 0),
-      compareAtPrice: p.compareAtPrice ? Number(p.compareAtPrice) : undefined,
-      discount: p.discount || (p.compareAtPrice && p.price && p.compareAtPrice > p.price ? Math.round(((p.compareAtPrice - p.price) / p.compareAtPrice) * 100) : 0),
+      price: Number(p.price || 0) || (weightVariants.filter(v => v.enabled && v.price > 0).map(v => v.price).sort((a, b) => a - b)[0] ?? 0),
+      compareAtPrice: p.compareAtPrice ? Number(p.compareAtPrice) : (weightVariants.filter(v => v.enabled && (v.compareAtPrice ?? 0) > 0).map(v => v.compareAtPrice as number).sort((a, b) => b - a)[0] ?? undefined),
+      discount: p.discount || 0,
       sku: p.sku || '',
       barcode: p.barcode,
       stock: Number(p.stock ?? 0),
