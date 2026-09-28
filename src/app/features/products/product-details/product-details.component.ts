@@ -448,11 +448,11 @@ export class ProductDetailsComponent implements OnInit {
     const list = this.allVariants();
     const code = this.selectedVariantCode();
     if (code) {
-      const match = list.find((v) => v.code === code);
+      const match = list.find((v) => v.code?.toUpperCase() === code.toUpperCase());
       if (match && match.enabled) return match;
     }
-    // Default to 1L if enabled, else first enabled variant
-    const def1L = list.find((v) => v.code === '1L' && v.enabled);
+    // Default to 1L or 1LTR if enabled, else first enabled variant
+    const def1L = list.find((v) => (v.code?.toUpperCase() === '1L' || v.code?.toUpperCase() === '1LTR') && v.enabled);
     if (def1L) return def1L;
     return list.find((v) => v.enabled);
   });

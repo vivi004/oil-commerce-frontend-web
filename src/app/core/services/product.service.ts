@@ -321,15 +321,24 @@ export class ProductService {
       }))
       : [];
 
+    const defaultVariant = weightVariants.find(v => v.enabled && v.code?.toUpperCase() === '1L')
+      || weightVariants.filter(v => v.enabled && v.price > 0).sort((a, b) => a.price - b.price)[0];
+
+    const resolvedPrice = defaultVariant?.price ?? (Number(p.price || 0) || 0);
+    const resolvedComparePrice = defaultVariant?.compareAtPrice ?? (p.compareAtPrice ? Number(p.compareAtPrice) : undefined);
+    const discount = (resolvedComparePrice && resolvedPrice && resolvedComparePrice > resolvedPrice)
+      ? Math.round(((resolvedComparePrice - resolvedPrice) / resolvedComparePrice) * 100)
+      : (p.discount || 0);
+
     return {
       id: String(p.id),
       name: p.name,
       slug: p.slug || (p.name ? p.name.toLowerCase().replace(/\s+/g, '-') : ''),
       description: p.description || '',
       shortDescription: p.shortDescription || p.description?.slice(0, 150) || '',
-      price: Number(p.price || 0) || (weightVariants.filter(v => v.enabled && v.price > 0).map(v => v.price).sort((a, b) => a - b)[0] ?? 0),
-      compareAtPrice: p.compareAtPrice ? Number(p.compareAtPrice) : (weightVariants.filter(v => v.enabled && (v.compareAtPrice ?? 0) > 0).map(v => v.compareAtPrice as number).sort((a, b) => b - a)[0] ?? undefined),
-      discount: p.discount || 0,
+      price: resolvedPrice,
+      compareAtPrice: resolvedComparePrice,
+      discount,
       sku: p.sku || '',
       barcode: p.barcode,
       stock: Number(p.stock ?? 0),

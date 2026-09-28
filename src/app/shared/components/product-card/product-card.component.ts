@@ -151,11 +151,11 @@ export class ProductCardComponent {
     const code = this.selectedVariantCode();
     const list = this.enabledVariants();
     if (code) {
-      const match = list.find((v) => v.code === code);
+      const match = list.find((v) => v.code?.toUpperCase() === code.toUpperCase());
       if (match) return match;
     }
-    // Default to 1L or the first available variant
-    const default1L = list.find((v) => v.code === '1L');
+    // Default to 1L or 1ltr, or the first available variant
+    const default1L = list.find((v) => v.code?.toUpperCase() === '1L' || v.code?.toUpperCase() === '1LTR');
     return default1L || list[0];
   });
 
