@@ -41,14 +41,11 @@ export class CartService {
     return 0;
   });
 
-  readonly taxAmount = computed(() => {
-    const taxableAmount = Math.max(0, this.subtotal() - this.discountAmount());
-    return Math.round(taxableAmount * 0.05); // 5% GST on edible & traditional oils
-  });
+  readonly taxAmount = computed(() => 0); // GST removed
 
   readonly total = computed(() => {
     if (this._items().length === 0) return 0;
-    return Math.max(0, this.subtotal() - this.discountAmount() + this.shippingCost() + this.taxAmount());
+    return Math.max(0, this.subtotal() - this.discountAmount() + this.shippingCost());
   });
 
   addToCart(

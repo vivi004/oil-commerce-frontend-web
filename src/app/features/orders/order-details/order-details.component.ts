@@ -112,10 +112,6 @@ import { EmptyStateComponent } from '../../../shared/components/empty-state/empt
                 </span>
               </div>
 
-              <div class="flex justify-between">
-                <span>GST (5%)</span>
-                <span class="font-bold text-stone-900">₹{{ ord.taxAmount }}</span>
-              </div>
             </div>
 
             <mat-divider class="!my-4" />
