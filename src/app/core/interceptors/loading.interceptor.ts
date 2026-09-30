@@ -17,13 +17,19 @@ export const loadingInterceptor: HttpInterceptorFn = (
 ) => {
   const spinner = inject(NgxSpinnerService);
 
-  // Skip background/silent requests tagged with 'X-Silent' or tracking/sync polling
-  if (
+  const isSilent =
     req.headers.has('X-Silent') ||
     req.url.includes('/tracking') ||
-    req.url.includes('orders/sync')
-  ) {
-    return next(req);
+    req.url.includes('/orders') ||
+    req.url.includes('orders/sync');
+
+  // Strip client-only 'X-Silent' header so it is never sent over the wire (avoids CORS preflight rejections)
+  const cleanReq = req.headers.has('X-Silent')
+    ? req.clone({ headers: req.headers.delete('X-Silent') })
+    : req;
+
+  if (isSilent) {
+    return next(cleanReq);
   }
 
   activeRequests++;

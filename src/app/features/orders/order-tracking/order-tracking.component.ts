@@ -47,20 +47,25 @@ interface StepDisplay {
           <div class="flex items-center gap-4 sm:gap-5 pb-6 mb-8 border-b border-stone-100">
             <div
               class="w-16 h-16 rounded-2xl flex items-center justify-center shrink-0 border transition-all"
-              [class.bg-emerald-50]="isDelivered()"
-              [class.text-emerald-700]="isDelivered()"
-              [class.border-emerald-200]="isDelivered()"
-              [class.bg-amber-50]="!isDelivered()"
-              [class.text-amber-800]="!isDelivered()"
-              [class.border-amber-200/60]="!isDelivered()"
+              [class.bg-rose-50]="isCancelled()"
+              [class.text-rose-700]="isCancelled()"
+              [class.border-rose-200]="isCancelled()"
+              [class.bg-emerald-50]="isDelivered() && !isCancelled()"
+              [class.text-emerald-700]="isDelivered() && !isCancelled()"
+              [class.border-emerald-200]="isDelivered() && !isCancelled()"
+              [class.bg-amber-50]="!isDelivered() && !isCancelled()"
+              [class.text-amber-800]="!isDelivered() && !isCancelled()"
+              [class.border-amber-200/60]="!isDelivered() && !isCancelled()"
             >
-              <mat-icon class="!text-3xl !w-8 !h-8">{{ isDelivered() ? 'verified' : 'local_shipping' }}</mat-icon>
+              <mat-icon class="!text-3xl !w-8 !h-8">{{ isCancelled() ? 'cancel' : (isDelivered() ? 'verified' : 'local_shipping') }}</mat-icon>
             </div>
             <div>
               <span class="text-[11px] font-bold uppercase tracking-wider text-stone-400">Current Status</span>
-              <h2 class="font-['Outfit',sans-serif] text-lg sm:text-2xl font-extrabold text-stone-900 m-0 my-1">{{ getCurrentStatusText() }}</h2>
+              <h2 class="font-['Outfit',sans-serif] text-lg sm:text-2xl font-extrabold m-0 my-1" [class.text-rose-700]="isCancelled()" [class.text-stone-900]="!isCancelled()">{{ getCurrentStatusText() }}</h2>
               <p class="text-xs sm:text-sm text-stone-500 m-0">
-                @if (isDelivered()) {
+                @if (isCancelled()) {
+                  <span class="text-rose-700 font-bold">This order has been cancelled and voided</span>
+                } @else if (isDelivered()) {
                   <span class="text-emerald-700 font-bold">Package Successfully Delivered</span>
                 } @else {
                   Estimated Delivery: <strong class="text-stone-800 font-bold">{{ (order()?.estimatedDelivery | slice:0:10) ?? 'In 2-3 Business Days' }}</strong>
@@ -75,17 +80,22 @@ interface StepDisplay {
               <div class="flex items-start gap-5 relative">
                 <div
                   class="w-10 h-10 rounded-full border-2 flex items-center justify-center shrink-0 z-10 transition-colors shadow-xs"
-                  [class.bg-emerald-600]="step.done"
-                  [class.border-emerald-600]="step.done"
-                  [class.text-white]="step.done"
-                  [class.bg-amber-700]="step.active && !step.done"
-                  [class.border-amber-700]="step.active && !step.done"
-                  [class.text-white]="step.active && !step.done"
-                  [class.bg-stone-50]="!step.done && !step.active"
-                  [class.border-stone-300]="!step.done && !step.active"
-                  [class.text-stone-400]="!step.done && !step.active"
+                  [class.bg-rose-600]="step.label === 'Order Cancelled'"
+                  [class.border-rose-600]="step.label === 'Order Cancelled'"
+                  [class.text-white]="step.label === 'Order Cancelled'"
+                  [class.bg-emerald-600]="step.done && step.label !== 'Order Cancelled'"
+                  [class.border-emerald-600]="step.done && step.label !== 'Order Cancelled'"
+                  [class.text-white]="step.done && step.label !== 'Order Cancelled'"
+                  [class.bg-amber-700]="step.active && !step.done && step.label !== 'Order Cancelled'"
+                  [class.border-amber-700]="step.active && !step.done && step.label !== 'Order Cancelled'"
+                  [class.text-white]="step.active && !step.done && step.label !== 'Order Cancelled'"
+                  [class.bg-stone-50]="!step.done && !step.active && step.label !== 'Order Cancelled'"
+                  [class.border-stone-300]="!step.done && !step.active && step.label !== 'Order Cancelled'"
+                  [class.text-stone-400]="!step.done && !step.active && step.label !== 'Order Cancelled'"
                 >
-                  @if (step.done) {
+                  @if (step.label === 'Order Cancelled') {
+                    <mat-icon class="!text-lg !w-5 !h-5">close</mat-icon>
+                  } @else if (step.done) {
                     <mat-icon class="!text-lg !w-5 !h-5">check</mat-icon>
                   } @else if (step.active) {
                     <mat-icon class="!text-lg !w-5 !h-5">radio_button_checked</mat-icon>
@@ -96,13 +106,14 @@ interface StepDisplay {
                 @if (!last) {
                   <div
                     class="absolute left-[19px] top-10 -bottom-2 w-0.5 z-0"
-                    [class.bg-emerald-500]="step.done"
+                    [class.bg-rose-400]="step.label === 'Order Cancelled'"
+                    [class.bg-emerald-500]="step.done && step.label !== 'Order Cancelled'"
                     [class.bg-stone-200]="!step.done"
                   ></div>
                 }
                 <div class="pb-8 flex-1 min-w-0">
                   <div class="flex justify-between items-center gap-2">
-                    <span class="text-sm sm:text-base font-bold text-stone-900">{{ step.label }}</span>
+                    <span class="text-sm sm:text-base font-bold" [class.text-rose-700]="step.label === 'Order Cancelled'" [class.text-stone-900]="step.label !== 'Order Cancelled'">{{ step.label }}</span>
                     @if (step.time) {
                       <span class="text-xs text-stone-400 font-medium shrink-0">{{ step.time }}</span>
                     }
@@ -166,9 +177,9 @@ export class OrderTrackingComponent implements OnInit, OnDestroy {
         if (ord) this.applyOrder(ord);
       });
 
-      // 3. Fast real-time live polling silently every 4 seconds in background
+      // 3. Fast real-time live polling silently every 2.5 seconds in background
       this.pollSub?.unsubscribe();
-      this.pollSub = interval(4000).pipe(
+      this.pollSub = interval(2500).pipe(
         switchMap(() => this.orderService.fetchLiveOrder(id, true))
       ).subscribe(ord => {
         if (ord) this.applyOrder(ord);
@@ -239,12 +250,19 @@ export class OrderTrackingComponent implements OnInit, OnDestroy {
     this.buildSteps(orderData);
   }
 
+  isCancelled(): boolean {
+    return normalizeOrderStatus(this.order()?.status) === OrderStatus.CANCELLED;
+  }
+
   isDelivered(): boolean {
     return normalizeOrderStatus(this.order()?.status) === OrderStatus.DELIVERED;
   }
 
   getCurrentStatusText(): string {
     const status = normalizeOrderStatus(this.order()?.status);
+    if (status === OrderStatus.CANCELLED) return 'Order Cancelled';
+    if (status === OrderStatus.RETURNED) return 'Order Returned';
+    if (status === OrderStatus.RETURN_REQUESTED) return 'Return Requested';
     if (status === OrderStatus.DELIVERED) return 'Delivered to Destination';
     if (status === OrderStatus.OUT_FOR_DELIVERY) return 'Out for Delivery with Courier';
     if (status === OrderStatus.SHIPPED) return 'In Transit with Express Carrier';
@@ -255,14 +273,61 @@ export class OrderTrackingComponent implements OnInit, OnDestroy {
 
   private buildSteps(order: Order | null): void {
     const status = normalizeOrderStatus(order?.status);
+    const updatedTime = order?.updatedAt ? order.updatedAt.slice(0, 16).replace('T', ' ') : undefined;
+    const createdTime = order?.createdAt ? order.createdAt.slice(0, 16).replace('T', ' ') : 'Just now';
+
+    if (status === OrderStatus.CANCELLED) {
+      this.steps.set([
+        {
+          label: 'Order Confirmed',
+          desc: 'We received your order and payment was verified',
+          done: true,
+          active: false,
+          time: createdTime
+        },
+        {
+          label: 'Order Cancelled',
+          desc: 'Order was cancelled and inventory has been restored to mill stock.',
+          done: true,
+          active: true,
+          time: updatedTime
+        }
+      ]);
+      return;
+    }
+
+    if (status === OrderStatus.RETURNED || status === OrderStatus.RETURN_REQUESTED) {
+      this.steps.set([
+        {
+          label: 'Order Confirmed',
+          desc: 'We received your order and payment verified',
+          done: true,
+          active: false,
+          time: createdTime
+        },
+        {
+          label: 'Delivered',
+          desc: 'Package delivered to recipient address',
+          done: true,
+          active: false,
+          time: updatedTime
+        },
+        {
+          label: status === OrderStatus.RETURNED ? 'Returned to Mill' : 'Return Request Pending',
+          desc: status === OrderStatus.RETURNED ? 'Package received back and refund processed' : 'Return request is currently under mill review',
+          done: true,
+          active: true,
+          time: updatedTime
+        }
+      ]);
+      return;
+    }
+
     const isDelivered = status === OrderStatus.DELIVERED;
     const isOutForDelivery = status === OrderStatus.OUT_FOR_DELIVERY || isDelivered;
     const isShipped = status === OrderStatus.SHIPPED || isOutForDelivery;
     const isPacked = status === OrderStatus.PACKED || isShipped;
     const isProcessing = status === OrderStatus.PROCESSING || isPacked;
-
-    const updatedTime = order?.updatedAt ? order.updatedAt.slice(0, 16).replace('T', ' ') : undefined;
-    const createdTime = order?.createdAt ? order.createdAt.slice(0, 16).replace('T', ' ') : 'Just now';
 
     this.steps.set([
       {

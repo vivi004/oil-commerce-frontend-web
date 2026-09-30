@@ -21,7 +21,23 @@ import { EmptyStateComponent } from '../../../shared/components/empty-state/empt
               <mat-icon>arrow_back</mat-icon>
             </a>
             <div>
-              <span class="text-xs font-extrabold uppercase tracking-wider text-amber-700 block mb-1">Invoice Details</span>
+              <div class="flex items-center gap-2 mb-1 flex-wrap">
+                <span class="text-xs font-extrabold uppercase tracking-wider text-amber-700 block">Invoice Details</span>
+                <span
+                  class="px-2.5 py-0.5 rounded-full text-[10.5px] font-bold uppercase tracking-wider border"
+                  [class.bg-rose-50]="ord.status === 'CANCELLED'"
+                  [class.text-rose-700]="ord.status === 'CANCELLED'"
+                  [class.border-rose-200]="ord.status === 'CANCELLED'"
+                  [class.bg-emerald-50]="ord.status === 'DELIVERED'"
+                  [class.text-emerald-700]="ord.status === 'DELIVERED'"
+                  [class.border-emerald-200]="ord.status === 'DELIVERED'"
+                  [class.bg-amber-50]="ord.status !== 'CANCELLED' && ord.status !== 'DELIVERED'"
+                  [class.text-amber-800]="ord.status !== 'CANCELLED' && ord.status !== 'DELIVERED'"
+                  [class.border-amber-200]="ord.status !== 'CANCELLED' && ord.status !== 'DELIVERED'"
+                >
+                  {{ ord.status }}
+                </span>
+              </div>
               <h1 class="font-['Outfit',sans-serif] text-xl sm:text-2xl lg:text-3xl font-extrabold text-stone-900 m-0">Order #{{ ord.orderNumber }}</h1>
               <p class="text-xs sm:text-sm text-stone-500 mt-1">Placed on {{ ord.createdAt | slice:0:10 }} • Paid via {{ ord.paymentMethod }}</p>
             </div>
@@ -75,7 +91,7 @@ import { EmptyStateComponent } from '../../../shared/components/empty-state/empt
 
                 <div>
                   <span class="text-[11px] font-bold text-stone-400 uppercase tracking-wider block mb-1.5">Shipping Carrier:</span>
-                  <strong class="text-stone-900 font-bold block mb-1 text-sm">{{ ord.carrier ?? 'FastExpress Priority' }}</strong>
+                  <strong class="text-stone-900 font-bold block mb-1 text-sm">{{ ord.carrier ?? 'DTDC Express' }}</strong>
                   <p class="text-stone-600 m-0 mb-2">
                     Tracking Number: <strong class="text-amber-900 font-mono">{{ ord.trackingNumber ?? 'Pending Assignment' }}</strong>
                   </p>
