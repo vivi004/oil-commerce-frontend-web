@@ -94,7 +94,7 @@ import { RouterLink } from '@angular/router';
             <div class="space-y-2 pt-2 text-xs text-stone-300">
               <div class="flex items-start gap-2.5">
                 <span class="text-amber-400 text-sm mt-0.5">📍</span>
-                <span>Nisha Agro Mill Complex, Kangeyam Road, Muthur, Erode, Tamil Nadu 638107</span>
+                <span>Nisha Agro Mill Complex, Edappadi-Salem Main Rd, Konganapuram, Tamil Nadu 637102</span>
               </div>
               <div class="flex items-center gap-2.5">
                 <span class="text-amber-400 text-sm">📞</span>

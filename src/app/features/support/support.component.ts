@@ -106,7 +106,7 @@ export class SupportComponent {
   readonly contactInfo = [
     { icon: '📧', label: 'Email Support', value: 'care@nishapureoils.com' },
     { icon: '📞', label: 'Phone / WhatsApp', value: '+91 98421 88990 (Mon-Sat 8AM-7:30PM)' },
-    { icon: '🏭', label: 'Mill Address', value: 'Nisha Pure Oils, Kangeyam Road, Erode, Tamil Nadu' },
+    { icon: '🏭', label: 'Mill Address', value: 'Nisha Pure Oils, Edappadi-Salem Main Rd, Konganapuram, Tamil Nadu 637102' },
   ];
 
   readonly faqs = [

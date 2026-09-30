@@ -40,8 +40,8 @@ import { ToastrService } from 'ngx-toastr';
                     <strong class="text-sm font-bold text-stone-900 block mb-1">Mill &amp; Factory Address</strong>
                     <p class="text-xs sm:text-sm text-stone-600 leading-relaxed m-0">
                       Nisha Pure Oils &amp; Agro Industries<br />
-                      Kangeyam Main Road, Near Reliance Petrol Bunk,<br />
-                      Erode District, Tamil Nadu — 638107, India
+                      Edappadi-Salem Main Rd, Konganapuram,<br />
+                      Tamil Nadu 637102, India
                     </p>
                   </div>
                 </div>

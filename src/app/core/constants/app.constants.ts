@@ -8,7 +8,7 @@ export const APP_CONSTANTS = {
   SUPPORT_PHONE: '+91 98421 88990',
   WHATSAPP_NUMBER: '+919842188990',
   FSSAI_LICENSE: '12423008000456',
-  ADDRESS: 'Nisha Pure Oils Mills, Kangeyam Road, Erode, Tamil Nadu 638107, India',
+  ADDRESS: 'Nisha Pure Oils Mills, Edappadi-Salem Main Rd, Konganapuram, Tamil Nadu 637102, India',
 
   // Pagination
   DEFAULT_PAGE_SIZE: 12,

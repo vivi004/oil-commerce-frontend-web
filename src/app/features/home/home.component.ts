@@ -312,12 +312,12 @@ import { ProductCardComponent } from '../../shared/components/product-card/produ
             
             <!-- Mill info (7 cols) -->
             <div class="lg:col-span-7">
-              <span class="text-xs font-extrabold uppercase tracking-widest text-amber-400 block mb-2">KANGEYAM MILL OUTLET</span>
+              <span class="text-xs font-extrabold uppercase tracking-widest text-amber-400 block mb-2">NISHA OIL MILL OUTLET</span>
               <h2 class="font-['Outfit',sans-serif] text-2xl sm:text-3xl lg:text-4xl font-extrabold mb-3" style="color: #ffffff !important;">
                 Visit Our Mill or Order Direct
               </h2>
               <p class="text-xs sm:text-[13.5px] text-stone-300 leading-relaxed mb-6 max-w-lg">
-                Experience authentic wood extraction live at our Kangeyam facility. We fulfill individual household orders, 15L commercial tins, and direct bulk supply across India.
+                Experience authentic wood extraction live at our Konganapuram facility. We fulfill individual household orders, 15L commercial tins, and direct bulk supply across India.
               </p>
 
               <div class="grid grid-cols-1 sm:grid-cols-2 gap-3.5 mb-6">
@@ -327,7 +327,7 @@ import { ProductCardComponent } from '../../shared/components/product-card/produ
                   </div>
                   <div>
                     <span class="text-xs text-amber-300 font-bold block mb-0.5">Mill Address</span>
-                    <span class="text-xs text-stone-300 leading-snug block">Kangeyam Road, Erode District, TN 638107</span>
+                    <span class="text-xs text-stone-300 leading-snug block">Edappadi-Salem Main Rd, Konganapuram, Tamil Nadu 637102</span>
                   </div>
                 </div>
                 <div class="bg-[#1c160f] border border-stone-800/90 rounded-2xl p-3.5 flex items-start gap-3">
