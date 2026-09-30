@@ -76,7 +76,7 @@ export class ReviewsComponent {
     {
       id: 'rev-1',
       productId: 'prod-groundnut-nisha',
-      productName: 'Wood Pressed Groundnut Oil (Marachekku)',
+      productName: 'Wood Pressed Groundnut Oil (Chekku Oil)',
       productImage: 'https://images.unsplash.com/photo-1474979266404-7eaacbcd87c5?w=700&auto=format&fit=crop&q=80',
       rating: 5,
       title: 'Incredible natural nutty aroma and pure clarity',

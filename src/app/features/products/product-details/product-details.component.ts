@@ -51,7 +51,7 @@ import { ProductCardComponent } from '../../../shared/components/product-card/pr
                 <span class="text-2xl leading-none">🪵</span>
                 <div>
                   <strong class="text-xs text-stone-900 block font-bold">Extraction</strong>
-                  <p class="text-[11.5px] text-stone-600 mt-0.5 leading-snug">{{ prod.extractionMethod ?? 'Cold Pressed (Marachekku)' }}</p>
+                  <p class="text-[11.5px] text-stone-600 mt-0.5 leading-snug">{{ prod.extractionMethod ?? 'Cold Pressed (Chekku Oil)' }}</p>
                 </div>
               </div>
               <div class="bg-stone-50 border border-stone-200/90 rounded-2xl p-4 flex items-start gap-3">

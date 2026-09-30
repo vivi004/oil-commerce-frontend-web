@@ -28,7 +28,7 @@ import { ProductCardComponent } from '../../shared/components/product-card/produ
               <!-- Eyebrow Pill Badge -->
               <div class="inline-flex items-center gap-2 px-4 py-1.5 bg-amber-400/10 border border-amber-400/25 rounded-full text-amber-300 text-xs sm:text-[13px] font-bold mb-6 tracking-wide backdrop-blur-md">
                 <span class="w-2.5 h-2.5 rounded-full bg-emerald-400 animate-pulse shrink-0"></span>
-                100% Traditional Vaagai Wood Cold-Pressed (Marachekku)
+                100% Traditional Cold-Pressed Chekku Oil
               </div>
 
               <!-- Main Heading -->
@@ -100,7 +100,7 @@ import { ProductCardComponent } from '../../shared/components/product-card/produ
                 <div class="p-5">
                   <span class="text-[10px] font-extrabold text-amber-400 uppercase tracking-widest block mb-1">Heritage Collection</span>
                   <h3 class="text-[17px] font-bold text-white mb-1 leading-snug" style="color: #ffffff !important;">Wood Pressed Groundnut Oil</h3>
-                  <p class="text-xs text-stone-400 mb-4 leading-relaxed">Vaagai Marachekku · 100% Raw Virgin · 500ml–15L</p>
+                  <p class="text-xs text-stone-400 mb-4 leading-relaxed">Pure Chekku Oil · 100% Raw Virgin · 500ml–15L</p>
 
                   <div class="flex items-center justify-between mb-4 pt-3 border-t border-white/10">
                     <div>
@@ -220,7 +220,7 @@ import { ProductCardComponent } from '../../shared/components/product-card/produ
                 <h3 class="font-['Outfit',sans-serif] text-2xl sm:text-3xl font-extrabold mb-2" style="color: #ffffff !important;">
                   Nisha Pure Oils
                 </h3>
-                <p class="text-amber-200/90 text-xs sm:text-sm font-semibold mb-3">100% Vaagai Wood Cold-Pressed (Marachekku)</p>
+                <p class="text-amber-200/90 text-xs sm:text-sm font-semibold mb-3">100% Cold-Pressed Chekku Oil</p>
                 <p class="text-stone-300 text-xs sm:text-[14px] leading-relaxed mb-6">
                   Extracted at slow speeds below 40°C in solid Vaagai wood pestles. Retains full aroma, natural golden color, and vital nutrients.
                 </p>

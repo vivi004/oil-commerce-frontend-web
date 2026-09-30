@@ -110,7 +110,7 @@ export class SupportComponent {
   ];
 
   readonly faqs = [
-    { q: 'What is wood-pressed / cold-pressed oil?', a: 'Wood pressed (Marachekku) oil is extracted at room temperature below 40°C using solid Vaagai wooden pestles without adding chemical solvents or artificial heat, preserving 100% natural vitamins, healthy enzymes, and antioxidants.' },
+    { q: 'What is Chekku oil / cold-pressed oil?', a: 'Chekku oil is extracted at room temperature below 40°C using solid wooden pestles without adding chemical solvents or artificial heat, preserving 100% natural vitamins, healthy enzymes, and antioxidants.' },
     { q: 'How do I track my order?', a: 'Visit My Orders and click "Track Package" on any active order to monitor real-time shipping carrier updates.' },
     { q: 'What is the shelf life of cold-pressed oils?', a: 'Because our oils are 100% pure with zero added preservatives, we recommend consuming them within 6 to 12 months when stored in a cool, dry place away from direct sunlight.' },
     { q: 'Do you offer bulk wholesale supplies for Oil Cake or 15L commercial tins?', a: 'Yes, we supply bulk groundnut oil cake and sesame oil cake for dairy and cattle feed, as well as 15L food-grade commercial tins for restaurants and caterers. Please contact our sales desk.' },

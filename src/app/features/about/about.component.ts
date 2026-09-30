@@ -42,7 +42,7 @@ import { MatIconModule } from '@angular/material/icon';
 
             <!-- Right: Text Story -->
             <div class="lg:col-span-6">
-              <span class="text-xs font-extrabold uppercase tracking-wider text-amber-700 block mb-1.5">Why Wood Churning (Marachekku)?</span>
+              <span class="text-xs font-extrabold uppercase tracking-wider text-amber-700 block mb-1.5">Why Chekku Oil?</span>
               <h2 class="font-['Outfit',sans-serif] text-2xl sm:text-3xl lg:text-4xl font-extrabold text-stone-900 mb-4 leading-tight">
                 True Cold Pressing Below 40°C
               </h2>
@@ -86,7 +86,7 @@ import { MatIconModule } from '@angular/material/icon';
             <!-- Brand 1: Nisha Pure Oils -->
             <div class="rounded-3xl p-6 sm:p-9 border border-amber-300/80 bg-amber-50 shadow-xs flex flex-col justify-between">
               <div>
-                <div class="text-[11px] font-extrabold bg-amber-900 text-amber-100 px-3 py-1 rounded-full inline-block self-start mb-4 uppercase tracking-wider">HERITAGE MARACHEKKU</div>
+                <div class="text-[11px] font-extrabold bg-amber-900 text-amber-100 px-3 py-1 rounded-full inline-block self-start mb-4 uppercase tracking-wider">HERITAGE CHEKKU OIL</div>
                 <h3 class="font-['Outfit',sans-serif] text-2xl sm:text-3xl font-bold text-amber-950 mb-2">Nisha Pure Oils</h3>
                 <p class="text-stone-700 text-sm mb-6 leading-relaxed flex-1">
                   Dedicated exclusively to wood-churned virgin groundnut, coconut, and sesame oils, plus sacred Pancha Deepa lamp oils, organic neem, mahua, peanut burfi, and organic cattle feed oil cakes.

@@ -13,7 +13,7 @@ export const MOCK_CATEGORIES: Category[] = [
     name: 'Groundnut Oil',
     slug: 'groundnut-oil',
     icon: '🥜',
-    description: 'Traditional wood-churned (Marachekku) and filtered groundnut oils packed with heart-healthy MUFA.',
+    description: 'Traditional Chekku oil and filtered groundnut oils packed with heart-healthy MUFA.',
     productCount: 2,
     isActive: true,
     sortOrder: 1,

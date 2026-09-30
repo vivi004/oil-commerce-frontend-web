@@ -38,7 +38,7 @@ import { RatingComponent } from '../rating/rating.component';
           }
           @if (product().extractionMethod?.includes('Wood')) {
             <span class="text-[10px] sm:text-[11px] font-extrabold py-0.5 px-2 rounded-md uppercase tracking-wider bg-emerald-800 text-emerald-100 shadow-xs">
-              Marachekku
+              Chekku Oil
             </span>
           }
         </div>

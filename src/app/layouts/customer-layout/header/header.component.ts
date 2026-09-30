@@ -26,7 +26,7 @@ import { toSignal } from '@angular/core/rxjs-interop';
         <div class="max-w-7xl mx-auto px-6 sm:px-10 lg:px-16 xl:px-20 flex justify-between items-center text-[12px] gap-2">
           <span class="hidden sm:inline-flex items-center gap-2 text-amber-300 font-semibold">
             <span class="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span>
-            100% Traditional Vaagai Wood Cold-Pressed (Marachekku)
+            100% Traditional Cold-Pressed Chekku Oil
           </span>
           <span class="mx-auto sm:mx-0 font-medium text-amber-100 flex items-center gap-1.5">
             <span>🌿</span>
