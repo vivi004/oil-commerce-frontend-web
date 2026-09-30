@@ -3,16 +3,26 @@ import { ToastrService } from 'ngx-toastr';
 import { Product, ProductVariant, WeightVariant } from '../models/product.model';
 import { CartItem } from '../models/cart.model';
 import { APP_CONSTANTS } from '../constants/app.constants';
+import { ApiService } from './api.service';
 
 const CART_STORAGE_KEY = 'nisha_pure_oils_cart_items';
 const COUPON_STORAGE_KEY = 'nisha_pure_oils_applied_coupon';
 
+export interface AppliedCouponInfo {
+  code: string;
+  type: string;
+  value: number;
+  maxDiscount?: number;
+}
+
 @Injectable({ providedIn: 'root' })
 export class CartService {
   private readonly toastr = inject(ToastrService);
+  private readonly api = inject(ApiService);
 
   private readonly _items = signal<CartItem[]>(this.loadCartFromStorage());
   private readonly _couponCode = signal<string | null>(this.loadCouponFromStorage());
+  private readonly _appliedCouponDetails = signal<AppliedCouponInfo | null>(null);
 
   readonly items = this._items.asReadonly();
   readonly couponCode = this._couponCode.asReadonly();
@@ -35,6 +45,15 @@ export class CartService {
     const code = this._couponCode();
     const sub = this.subtotal();
     if (!code || sub === 0) return 0;
+    const details = this._appliedCouponDetails();
+    if (details) {
+      if (details.type === 'PERCENT') {
+        const disc = Math.round(sub * (details.value / 100));
+        return details.maxDiscount ? Math.min(details.maxDiscount, disc) : disc;
+      } else if (details.type === 'FIXED') {
+        return Math.min(sub, details.value);
+      }
+    }
     if (code.toUpperCase() === 'SAVE20' || code.toUpperCase() === 'PURE20') return Math.round(sub * 0.2);
     if (code.toUpperCase() === 'WELCOME10' || code.toUpperCase() === 'NISHA10') return Math.round(sub * 0.1);
     if (code.toUpperCase() === 'FIRSTOIL') return Math.min(150, Math.round(sub * 0.15));
@@ -127,21 +146,58 @@ export class CartService {
 
   applyCoupon(code: string): boolean {
     const trimmed = code.trim().toUpperCase();
-    const validCodes = ['SAVE20', 'PURE20', 'WELCOME10', 'NISHA10', 'FIRSTOIL'];
+    if (!trimmed) {
+      this.toastr.warning('Please enter a coupon code.');
+      return false;
+    }
 
-    if (validCodes.includes(trimmed)) {
+    this.api.post<any>('/coupons/validate', { code: trimmed, subtotal: this.subtotal() }).subscribe({
+      next: (res) => {
+        if (res?.data?.valid) {
+          this._couponCode.set(trimmed);
+          this._appliedCouponDetails.set({
+            code: trimmed,
+            type: res.data.type || 'PERCENT',
+            value: Number(res.data.value) || 20,
+            maxDiscount: res.data.maximumDiscount ? Number(res.data.maximumDiscount) : undefined
+          });
+          this.saveCouponToStorage(trimmed);
+          this.toastr.success(res.data.message || `Promo code "${trimmed}" applied successfully!`, 'Discount Active');
+        } else {
+          this.handleCouponFallback(trimmed);
+        }
+      },
+      error: () => {
+        this.handleCouponFallback(trimmed);
+      }
+    });
+
+    return true;
+  }
+
+  private handleCouponFallback(trimmed: string): void {
+    const validCodes: Record<string, { type: string; value: number; max?: number }> = {
+      'SAVE20': { type: 'PERCENT', value: 20 },
+      'PURE20': { type: 'PERCENT', value: 20 },
+      'WELCOME10': { type: 'PERCENT', value: 10 },
+      'NISHA10': { type: 'PERCENT', value: 10 },
+      'FIRSTOIL': { type: 'PERCENT', value: 15, max: 150 }
+    };
+
+    if (validCodes[trimmed]) {
+      const cfg = validCodes[trimmed];
       this._couponCode.set(trimmed);
+      this._appliedCouponDetails.set({ code: trimmed, type: cfg.type, value: cfg.value, maxDiscount: cfg.max });
       this.saveCouponToStorage(trimmed);
       this.toastr.success(`Promo code "${trimmed}" applied successfully!`, 'Discount Active');
-      return true;
     } else {
       this.toastr.error('Invalid coupon code. Try PURE20, NISHA10, or SAVE20', 'Promo Code Error');
-      return false;
     }
   }
 
   removeCoupon(): void {
     this._couponCode.set(null);
+    this._appliedCouponDetails.set(null);
     localStorage.removeItem(COUPON_STORAGE_KEY);
     this.toastr.info('Coupon removed.');
   }
@@ -149,6 +205,7 @@ export class CartService {
   clearCart(): void {
     this._items.set([]);
     this._couponCode.set(null);
+    this._appliedCouponDetails.set(null);
     localStorage.removeItem(CART_STORAGE_KEY);
     localStorage.removeItem(COUPON_STORAGE_KEY);
   }

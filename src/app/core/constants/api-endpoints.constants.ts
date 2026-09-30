@@ -35,6 +35,19 @@ export const API_ENDPOINTS = {
     TREE:   '/categories/tree',
   },
 
+  // Brands
+  BRANDS: {
+    LIST:   '/brands',
+    DETAIL: (id: string) => `/brands/${id}`,
+  },
+
+  // Coupons
+  COUPONS: {
+    LIST:     '/coupons',
+    VALIDATE: '/coupons/validate',
+    DETAIL:   (code: string) => `/coupons/${code}`,
+  },
+
   // Cart
   CART: {
     GET:          '/cart',

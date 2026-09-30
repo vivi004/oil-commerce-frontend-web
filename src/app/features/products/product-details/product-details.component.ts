@@ -480,6 +480,15 @@ export class ProductDetailsComponent implements OnInit {
         this.loadProduct(id);
       }
     });
+
+    this.productService.productsUpdated$.subscribe(() => {
+      const current = this.product();
+      if (current) {
+        this.productService.getProductById(current.id).subscribe((p) => {
+          this.product.set(p);
+        });
+      }
+    });
   }
 
   loadProduct(id: string): void {

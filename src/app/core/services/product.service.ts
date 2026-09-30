@@ -1,5 +1,5 @@
 import { Injectable, inject } from '@angular/core';
-import { Observable, of, map, catchError } from 'rxjs';
+import { Observable, of, map, catchError, Subject, tap } from 'rxjs';
 import { ApiService } from './api.service';
 import { Product, Category, ProductFilter, WeightVariant, WeightVariantCode, ProductImage } from '../models/product.model';
 import { ProductStatus } from '../enums/product-status.enum';
@@ -173,64 +173,50 @@ const SF_CATEGORIES_KEY = 'shopzone_categories_v1';
 @Injectable({ providedIn: 'root' })
 export class ProductService {
   private readonly api = inject(ApiService);
+  private channel?: BroadcastChannel;
+  readonly productsUpdated$ = new Subject<void>();
+
+  constructor() {
+    this.initCrossTabListener();
+  }
+
+  private initCrossTabListener(): void {
+    if (typeof window === 'undefined') return;
+    try {
+      if ('BroadcastChannel' in window) {
+        this.channel = new BroadcastChannel('nisha_products_channel');
+        this.channel.onmessage = () => {
+          this.refreshProducts().subscribe();
+        };
+      }
+    } catch {}
+
+    window.addEventListener('storage', (event) => {
+      if (event.key === 'nisha_last_product_update') {
+        this.refreshProducts().subscribe();
+      }
+    });
+  }
+
+  refreshProducts(): Observable<Product[]> {
+    return this.api.get<PaginatedResponse<any>>(API_ENDPOINTS.PRODUCTS.LIST, { params: { pageSize: 100 } }).pipe(
+      map(res => {
+        if (res?.data?.items && res.data.items.length > 0) {
+          const prods = res.data.items.map((i: any) => this.mapBackendProduct(i));
+          this.persistLocalProducts(prods);
+          return prods;
+        }
+        return this.getActiveProducts();
+      }),
+      tap(() => this.productsUpdated$.next()),
+      catchError(() => of(this.getActiveProducts()))
+    );
+  }
 
   private getActiveProducts(): Product[] {
     const demoSkus = new Set(['NPO-GNO-001', 'NPO-VCO-002', 'NPO-SES-003', 'VG-LMP-004', 'VG-LMP-005', 'NPO-CAKE-005', 'NPO-CAS-004', 'NPO-CNO-002', 'NPO-NEM-006']);
     if (typeof window !== 'undefined') {
       try {
-        // Cross-app sync: check if admin panel saved products
-        const adminData = localStorage.getItem('nisha_admin_products_v1');
-        if (adminData) {
-          const adminProducts = JSON.parse(adminData);
-          if (Array.isArray(adminProducts) && adminProducts.length > 0) {
-            const valid = adminProducts.filter((p: any) => !p.id?.startsWith?.('prod-') && !demoSkus.has(p.sku));
-            if (valid.length > 0) {
-              return valid.map((p: any) => ({
-                id: p.id,
-                name: p.name,
-                slug: p.slug || p.name.toLowerCase().replace(/\s+/g, '-'),
-                description: p.description,
-                shortDescription: p.shortDescription || p.description?.slice(0, 150),
-                price: Number(p.minPrice || p.price || 100),
-                compareAtPrice: Number(p.maxPrice || p.compareAtPrice || 120),
-                discount: p.compareAtPrice && p.price && p.compareAtPrice > p.price ? Math.round(((p.compareAtPrice - p.price) / p.compareAtPrice) * 100) : 0,
-                sku: p.sku,
-                stock: Number(p.totalStock ?? p.stock ?? 0),
-                thumbnail: this.resolveImageUrl(p.primaryImage || p.thumbnail),
-                images: (p.images || []).map((img: string, idx: number) => ({ id: `img-${idx}`, url: this.resolveImageUrl(img), isPrimary: idx === 0, sortOrder: idx })),
-                categoryId: p.categoryId,
-                category: { id: p.categoryId, name: p.category, slug: (p.category || '').toLowerCase().replace(/\s+/g, '-'), icon: '🛢️', description: '', productCount: 0, isActive: true, sortOrder: 1, createdAt: '' },
-                brand: p.brand,
-                tags: ['cold pressed', 'unrefined'],
-                rating: 5.0,
-                reviewCount: 0,
-                isFeatured: p.featured ?? true,
-                isOnSale: p.onSale ?? false,
-                isBestSeller: p.bestSeller ?? false,
-                status: p.status,
-                extractionMethod: p.extractionMethod || 'Traditional Cold Pressed',
-                smokePoint: '210°C',
-                purity: '100% Unrefined',
-                shelfLife: '12 Months',
-                origin: p.origin || 'Tamil Nadu',
-                weightVariants: (p.variants || []).map((v: any) => ({
-                  code: v.size,
-                  label: `${v.size} Bottle`,
-                  price: Number(v.sellingPrice),
-                  compareAtPrice: Number(v.mrp),
-                  discount: 0,
-                  stock: Number(v.stockQuantity || 0),
-                  enabled: v.isEnabled !== false,
-                  sku: v.sku
-                })),
-                benefits: Array.isArray(p.benefits) ? p.benefits : (p.benefits ? p.benefits.split('.') : ['100% Pure', 'Unrefined']),
-                nutritionalInfo: [],
-                createdAt: p.createdAt || new Date().toISOString(),
-                updatedAt: p.updatedAt || new Date().toISOString()
-              }));
-            }
-          }
-        }
         const sfData = localStorage.getItem(SF_PRODUCTS_KEY);
         if (sfData) {
           const parsed = JSON.parse(sfData);
@@ -241,7 +227,6 @@ export class ProductService {
       } catch (e) {
         console.warn('Could not read stored products:', e);
       }
-
     }
     return MOCK_PRODUCTS;
   }
@@ -380,7 +365,7 @@ export class ProductService {
 
   getProducts(filter?: ProductFilter): Observable<PaginatedResponse<Product>> {
     return this.api
-      .get<PaginatedResponse<any>>(API_ENDPOINTS.PRODUCTS.LIST, filter as Record<string, unknown>)
+      .get<PaginatedResponse<any>>(API_ENDPOINTS.PRODUCTS.LIST, filter ? { params: filter as any } : undefined)
       .pipe(
         map((res) => {
           if (res?.data?.items && res.data.items.length > 0) {
@@ -428,39 +413,123 @@ export class ProductService {
   }
 
   getBestSellers(): Observable<Product[]> {
-    return of(this.getActiveProducts().filter((p) => p.isBestSeller));
+    return this.api.get<any>(API_ENDPOINTS.PRODUCTS.LIST, { params: { bestSeller: true, pageSize: 12 } }).pipe(
+      map((res) => {
+        const items = res?.data?.items || res?.data;
+        if (Array.isArray(items) && items.length > 0) {
+          return items.map((item: any) => this.mapBackendProduct(item));
+        }
+        return this.getActiveProducts().filter((p) => p.isBestSeller);
+      }),
+      catchError(() => of(this.getActiveProducts().filter((p) => p.isBestSeller)))
+    );
   }
 
   getOnSaleProducts(): Observable<Product[]> {
-    return of(this.getActiveProducts().filter((p) => p.isOnSale));
+    return this.api.get<any>(API_ENDPOINTS.PRODUCTS.LIST, { params: { onSale: true, pageSize: 12 } }).pipe(
+      map((res) => {
+        const items = res?.data?.items || res?.data;
+        if (Array.isArray(items) && items.length > 0) {
+          return items.map((item: any) => this.mapBackendProduct(item));
+        }
+        return this.getActiveProducts().filter((p) => p.isOnSale);
+      }),
+      catchError(() => of(this.getActiveProducts().filter((p) => p.isOnSale)))
+    );
   }
 
   getCategories(): Observable<Category[]> {
-    return this.api.get<Category[]>(API_ENDPOINTS.CATEGORIES.LIST).pipe(
-      map((res) => (res.data && res.data.length > 0 ? res.data : this.getActiveCategories())),
-      catchError(() => of(this.getActiveCategories())),
+    return this.api.get<any>(API_ENDPOINTS.CATEGORIES.LIST).pipe(
+      map((res) => {
+        const list = res?.data?.items || res?.data;
+        if (Array.isArray(list) && list.length > 0) {
+          return list.map((c: any) => ({
+            id: String(c.id),
+            name: c.name,
+            slug: c.slug || c.name.toLowerCase().replace(/\s+/g, '-'),
+            icon: c.icon || '🛢️',
+            image: c.image ? this.resolveImageUrl(c.image) : undefined,
+            description: c.description || '',
+            productCount: Number(c.productCount || 0),
+            isActive: c.isActive !== false,
+            sortOrder: Number(c.sortOrder || 1),
+            createdAt: c.createdAt ? String(c.createdAt) : ''
+          }));
+        }
+        return this.getActiveCategories();
+      }),
+      catchError(() => of(this.getActiveCategories()))
+    );
+  }
+
+  getBrands(): Observable<any[]> {
+    return this.api.get<any>(API_ENDPOINTS.BRANDS.LIST).pipe(
+      map((res) => {
+        const list = res?.data?.items || res?.data;
+        if (Array.isArray(list) && list.length > 0) {
+          return list.map((b: any) => ({
+            id: String(b.id),
+            name: b.name,
+            slug: b.slug || b.name.toLowerCase().replace(/\s+/g, '-'),
+            description: b.description || '',
+            tagline: b.tagline || '',
+            logo: b.logo || '',
+            origin: b.origin || 'Tamil Nadu',
+            isActive: b.active !== false
+          }));
+        }
+        return [
+          { id: 'b1', name: 'Nisha Pure Oils', slug: 'nisha-pure-oils', origin: 'Kangeyam, Tamil Nadu', isActive: true },
+          { id: 'b2', name: 'Varshini Gold', slug: 'varshini-gold', origin: 'Kangeyam, Tamil Nadu', isActive: true }
+        ];
+      }),
+      catchError(() => of([
+        { id: 'b1', name: 'Nisha Pure Oils', slug: 'nisha-pure-oils', origin: 'Kangeyam, Tamil Nadu', isActive: true },
+        { id: 'b2', name: 'Varshini Gold', slug: 'varshini-gold', origin: 'Kangeyam, Tamil Nadu', isActive: true }
+      ]))
     );
   }
 
   getProductsByBrand(brandName: string): Observable<Product[]> {
-    return of(
-      this.getActiveProducts().filter(
-        (p) => p.brand?.toLowerCase() === brandName.toLowerCase(),
-      ),
+    return this.api.get<any>(API_ENDPOINTS.PRODUCTS.LIST, { params: { brand: brandName, pageSize: 24 } }).pipe(
+      map((res) => {
+        const items = res?.data?.items || res?.data;
+        if (Array.isArray(items) && items.length > 0) {
+          return items.map((item: any) => this.mapBackendProduct(item));
+        }
+        return this.getActiveProducts().filter((p) => p.brand?.toLowerCase() === brandName.toLowerCase());
+      }),
+      catchError(() => of(this.getActiveProducts().filter((p) => p.brand?.toLowerCase() === brandName.toLowerCase())))
     );
   }
 
   searchProducts(query: string): Observable<Product[]> {
     if (!query) return of([]);
-    const q = query.toLowerCase();
-    return of(
-      this.getActiveProducts().filter(
-        (p) =>
+    return this.api.get<any>(API_ENDPOINTS.PRODUCTS.SEARCH, { params: { q: query, pageSize: 24 } }).pipe(
+      map((res) => {
+        const items = res?.data?.items || res?.data;
+        if (Array.isArray(items) && items.length > 0) {
+          return items.map((item: any) => this.mapBackendProduct(item));
+        }
+        const q = query.toLowerCase();
+        return this.getActiveProducts().filter((p) =>
           p.name.toLowerCase().includes(q) ||
           p.description.toLowerCase().includes(q) ||
           p.brand?.toLowerCase().includes(q) ||
-          p.category?.name.toLowerCase().includes(q),
-      ),
+          p.category?.name.toLowerCase().includes(q)
+        );
+      }),
+      catchError(() => {
+        const q = query.toLowerCase();
+        return of(
+          this.getActiveProducts().filter((p) =>
+            p.name.toLowerCase().includes(q) ||
+            p.description.toLowerCase().includes(q) ||
+            p.brand?.toLowerCase().includes(q) ||
+            p.category?.name.toLowerCase().includes(q)
+          )
+        );
+      })
     );
   }
 

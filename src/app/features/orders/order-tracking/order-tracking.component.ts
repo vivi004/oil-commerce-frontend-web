@@ -1,11 +1,13 @@
-import { Component, OnInit, inject, signal } from '@angular/core';
+import { Component, OnInit, OnDestroy, inject, signal } from '@angular/core';
 import { RouterLink, ActivatedRoute } from '@angular/router';
 import { SlicePipe } from '@angular/common';
 import { MatButtonModule } from '@angular/material/button';
 import { MatIconModule } from '@angular/material/icon';
+import { Subscription, interval } from 'rxjs';
+import { switchMap } from 'rxjs/operators';
 import { OrderService } from '../../../core/services/order.service';
 import { Order } from '../../../core/models/order.model';
-import { OrderStatus } from '../../../core/enums/order-status.enum';
+import { OrderStatus, normalizeOrderStatus } from '../../../core/enums/order-status.enum';
 
 interface StepDisplay {
   label: string;
@@ -25,10 +27,15 @@ interface StepDisplay {
           <mat-icon>arrow_back</mat-icon>
         </a>
         <div>
-          <span class="text-xs font-extrabold uppercase tracking-wider text-amber-700 block mb-1">Live Shipment Tracking</span>
+          <div class="flex items-center gap-2 mb-1 flex-wrap">
+            <span class="text-xs font-extrabold uppercase tracking-wider text-amber-700 block">Live Shipment Tracking</span>
+            <span class="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[10.5px] font-bold uppercase tracking-wider bg-emerald-50 text-emerald-800 border border-emerald-200/80 shadow-xs">
+              <span class="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span> Instant Live Sync
+            </span>
+          </div>
           <h1 class="font-['Outfit',sans-serif] text-xl sm:text-2xl lg:text-3xl font-extrabold text-stone-900 m-0">Order #{{ order()?.orderNumber ?? orderId() }}</h1>
           <p class="text-xs sm:text-sm text-stone-500 mt-1">
-            Carrier: <strong class="text-stone-800">{{ order()?.carrier ?? 'FastExpress Priority' }}</strong> • Tracking ID: <strong class="text-amber-900 font-mono">{{ order()?.trackingNumber ?? 'Pending' }}</strong>
+            Carrier: <strong class="text-stone-800">{{ order()?.carrier ?? 'DTDC Express' }}</strong> • Tracking ID: <strong class="text-amber-900 font-mono">{{ order()?.trackingNumber ?? 'Pending' }}</strong>
           </p>
         </div>
       </div>
@@ -37,14 +44,26 @@ interface StepDisplay {
         <!-- Status Box & Timeline -->
         <div class="bg-white border border-stone-200/90 rounded-2xl p-6 sm:p-8 shadow-xs">
           <div class="flex items-center gap-4 sm:gap-5 pb-6 mb-8 border-b border-stone-100">
-            <div class="w-16 h-16 rounded-2xl bg-amber-50 text-amber-800 border border-amber-200/60 flex items-center justify-center shrink-0">
-              <mat-icon class="!text-3xl !w-8 !h-8">local_shipping</mat-icon>
+            <div
+              class="w-16 h-16 rounded-2xl flex items-center justify-center shrink-0 border transition-all"
+              [class.bg-emerald-50]="isDelivered()"
+              [class.text-emerald-700]="isDelivered()"
+              [class.border-emerald-200]="isDelivered()"
+              [class.bg-amber-50]="!isDelivered()"
+              [class.text-amber-800]="!isDelivered()"
+              [class.border-amber-200/60]="!isDelivered()"
+            >
+              <mat-icon class="!text-3xl !w-8 !h-8">{{ isDelivered() ? 'verified' : 'local_shipping' }}</mat-icon>
             </div>
             <div>
               <span class="text-[11px] font-bold uppercase tracking-wider text-stone-400">Current Status</span>
               <h2 class="font-['Outfit',sans-serif] text-lg sm:text-2xl font-extrabold text-stone-900 m-0 my-1">{{ getCurrentStatusText() }}</h2>
               <p class="text-xs sm:text-sm text-stone-500 m-0">
-                Estimated Delivery: <strong class="text-stone-800 font-bold">{{ (order()?.estimatedDelivery | slice:0:10) ?? 'In 2-3 Business Days' }}</strong>
+                @if (isDelivered()) {
+                  <span class="text-emerald-700 font-bold">Package Successfully Delivered</span>
+                } @else {
+                  Estimated Delivery: <strong class="text-stone-800 font-bold">{{ (order()?.estimatedDelivery | slice:0:10) ?? 'In 2-3 Business Days' }}</strong>
+                }
               </p>
             </div>
           </div>
@@ -115,7 +134,7 @@ interface StepDisplay {
   `,
   styles: [],
 })
-export class OrderTrackingComponent implements OnInit {
+export class OrderTrackingComponent implements OnInit, OnDestroy {
   private readonly route = inject(ActivatedRoute);
   private readonly orderService = inject(OrderService);
 
@@ -123,67 +142,158 @@ export class OrderTrackingComponent implements OnInit {
   readonly order = signal<Order | null>(null);
   readonly steps = signal<StepDisplay[]>([]);
 
+  private pollSub?: Subscription;
+  private channel?: BroadcastChannel;
+  private storageListener?: (e: StorageEvent) => void;
+
   ngOnInit(): void {
     this.route.paramMap.subscribe(params => {
       const id = params.get('id') ?? 'ord-9821';
       this.orderId.set(id);
+
+      // 1. Initial cached order
       this.orderService.getOrderById(id).subscribe(ord => {
-        const orderData = ord ?? null;
-        this.order.set(orderData);
-        this.buildSteps(orderData);
+        if (ord) this.applyOrder(ord);
+      });
+
+      // 2. Immediate live fetch from backend
+      this.orderService.fetchLiveOrder(id).subscribe(ord => {
+        if (ord) this.applyOrder(ord);
+      });
+
+      // 3. Fast real-time live polling every 2.5 seconds
+      this.pollSub?.unsubscribe();
+      this.pollSub = interval(2500).pipe(
+        switchMap(() => this.orderService.fetchLiveOrder(id))
+      ).subscribe(ord => {
+        if (ord) this.applyOrder(ord);
       });
     });
+
+    // 4. Instant 0ms broadcast channel listener (when updated from admin in another tab)
+    try {
+      if (typeof window !== 'undefined' && 'BroadcastChannel' in window) {
+        this.channel = new BroadcastChannel('nisha_orders_channel');
+        this.channel.onmessage = (event) => {
+          if (event.data?.type === 'ORDER_STATUS_UPDATED') {
+            const currentId = this.orderId();
+            const { orderId, orderNumber } = event.data;
+            if (
+              orderId === currentId ||
+              orderNumber === currentId ||
+              this.order()?.id === orderId ||
+              this.order()?.orderNumber === orderNumber
+            ) {
+              this.orderService.fetchLiveOrder(currentId).subscribe(ord => {
+                if (ord) this.applyOrder(ord);
+              });
+            }
+          }
+        };
+      }
+    } catch {}
+
+    // 5. Storage event listener for cross-tab updates
+    if (typeof window !== 'undefined') {
+      this.storageListener = (e: StorageEvent) => {
+        if (e.key === 'nisha_last_order_update' && e.newValue) {
+          try {
+            const parsed = JSON.parse(e.newValue);
+            const currentId = this.orderId();
+            if (
+              parsed.orderId === currentId ||
+              parsed.orderNumber === currentId ||
+              this.order()?.id === parsed.orderId ||
+              this.order()?.orderNumber === parsed.orderNumber
+            ) {
+              this.orderService.fetchLiveOrder(currentId).subscribe(ord => {
+                if (ord) this.applyOrder(ord);
+              });
+            }
+          } catch {}
+        }
+      };
+      window.addEventListener('storage', this.storageListener);
+    }
+  }
+
+  ngOnDestroy(): void {
+    this.pollSub?.unsubscribe();
+    if (this.channel) {
+      try {
+        this.channel.close();
+      } catch {}
+    }
+    if (this.storageListener && typeof window !== 'undefined') {
+      window.removeEventListener('storage', this.storageListener);
+    }
+  }
+
+  applyOrder(orderData: Order): void {
+    this.order.set(orderData);
+    this.buildSteps(orderData);
+  }
+
+  isDelivered(): boolean {
+    return normalizeOrderStatus(this.order()?.status) === OrderStatus.DELIVERED;
   }
 
   getCurrentStatusText(): string {
-    const status = this.order()?.status;
+    const status = normalizeOrderStatus(this.order()?.status);
     if (status === OrderStatus.DELIVERED) return 'Delivered to Destination';
+    if (status === OrderStatus.OUT_FOR_DELIVERY) return 'Out for Delivery with Courier';
     if (status === OrderStatus.SHIPPED) return 'In Transit with Express Carrier';
-    if (status === OrderStatus.PROCESSING) return 'Departing Kangeyam Facility';
+    if (status === OrderStatus.PACKED) return 'Bottles Sealed & Boxed at Facility';
+    if (status === OrderStatus.PROCESSING) return 'Cold-Press Packaging & Preparation';
     return 'Order Confirmed & Prepared';
   }
 
   private buildSteps(order: Order | null): void {
-    const status = order?.status ?? OrderStatus.CONFIRMED;
+    const status = normalizeOrderStatus(order?.status);
     const isDelivered = status === OrderStatus.DELIVERED;
-    const isShipped = status === OrderStatus.SHIPPED || isDelivered;
-    const isProcessing = status === OrderStatus.PROCESSING || isShipped;
+    const isOutForDelivery = status === OrderStatus.OUT_FOR_DELIVERY || isDelivered;
+    const isShipped = status === OrderStatus.SHIPPED || isOutForDelivery;
+    const isPacked = status === OrderStatus.PACKED || isShipped;
+    const isProcessing = status === OrderStatus.PROCESSING || isPacked;
+
+    const updatedTime = order?.updatedAt ? order.updatedAt.slice(0, 16).replace('T', ' ') : undefined;
+    const createdTime = order?.createdAt ? order.createdAt.slice(0, 16).replace('T', ' ') : 'Just now';
 
     this.steps.set([
       {
         label: 'Order Confirmed',
         desc: 'We received your order and payment verified',
         done: true,
-        active: !isProcessing,
-        time: order?.createdAt ? order.createdAt.slice(0, 16).replace('T', ' ') : 'Feb 8, 10:30 AM'
+        active: !isProcessing && !isPacked && !isShipped && !isDelivered,
+        time: createdTime
       },
       {
         label: 'Packed & Processed',
         desc: 'Bottles sealed and boxed in protective corrugated packaging',
         done: isProcessing,
         active: isProcessing && !isShipped,
-        time: isProcessing ? 'Feb 9, 08:00 AM' : undefined
+        time: isProcessing ? updatedTime : undefined
       },
       {
         label: 'In Transit / Shipped',
-        desc: `Handed over to ${order?.carrier ?? 'FastExpress Priority'}`,
+        desc: `Handed over to ${order?.carrier || 'DTDC Express'}`,
         done: isShipped,
-        active: isShipped && !isDelivered,
-        time: isShipped ? 'Feb 9, 02:20 PM' : undefined
+        active: isShipped && !isOutForDelivery,
+        time: isShipped ? updatedTime : undefined
       },
       {
         label: 'Out for Delivery',
         desc: 'Courier vehicle assigned for destination drop-off',
-        done: isDelivered,
-        active: false,
-        time: isDelivered ? 'Feb 10, 09:15 AM' : undefined
+        done: isOutForDelivery,
+        active: isOutForDelivery && !isDelivered,
+        time: isOutForDelivery ? updatedTime : undefined
       },
       {
         label: 'Delivered',
         desc: 'Delivered to recipient address',
         done: isDelivered,
         active: isDelivered,
-        time: isDelivered ? 'Feb 10, 04:45 PM' : undefined
+        time: isDelivered ? updatedTime : undefined
       }
     ]);
   }

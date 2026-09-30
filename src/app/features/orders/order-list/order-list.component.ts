@@ -6,7 +6,7 @@ import { MatIconModule } from '@angular/material/icon';
 import { MatChipsModule } from '@angular/material/chips';
 import { OrderService } from '../../../core/services/order.service';
 import { Order } from '../../../core/models/order.model';
-import { OrderStatus } from '../../../core/enums/order-status.enum';
+import { OrderStatus, normalizeOrderStatus } from '../../../core/enums/order-status.enum';
 import { EmptyStateComponent } from '../../../shared/components/empty-state/empty-state.component';
 
 @Component({
@@ -131,32 +131,44 @@ export class OrderListComponent implements OnInit {
     });
   }
 
-  getStatusLabel(status: OrderStatus): string {
-    switch (status) {
+  getStatusLabel(status: OrderStatus | string): string {
+    const s = normalizeOrderStatus(status);
+    switch (s) {
       case OrderStatus.DELIVERED: return 'Delivered';
+      case OrderStatus.OUT_FOR_DELIVERY: return 'Out for Delivery';
       case OrderStatus.SHIPPED: return 'Shipped / In Transit';
+      case OrderStatus.PACKED: return 'Packed';
       case OrderStatus.PROCESSING: return 'Processing Order';
       case OrderStatus.CONFIRMED: return 'Confirmed & Preparing';
-      default: return status;
+      case OrderStatus.CANCELLED: return 'Cancelled';
+      default: return String(status);
     }
   }
 
-  getStatusClass(status: OrderStatus): string {
-    switch (status) {
+  getStatusClass(status: OrderStatus | string): string {
+    const s = normalizeOrderStatus(status);
+    switch (s) {
       case OrderStatus.DELIVERED: return 'text-emerald-700';
+      case OrderStatus.OUT_FOR_DELIVERY:
       case OrderStatus.SHIPPED: return 'text-blue-600';
+      case OrderStatus.PACKED:
       case OrderStatus.PROCESSING:
       case OrderStatus.CONFIRMED: return 'text-amber-700';
+      case OrderStatus.CANCELLED: return 'text-rose-700';
       default: return 'text-stone-500';
     }
   }
 
-  getStatusDotClass(status: OrderStatus): string {
-    switch (status) {
+  getStatusDotClass(status: OrderStatus | string): string {
+    const s = normalizeOrderStatus(status);
+    switch (s) {
       case OrderStatus.DELIVERED: return 'bg-emerald-600';
+      case OrderStatus.OUT_FOR_DELIVERY:
       case OrderStatus.SHIPPED: return 'bg-blue-600';
+      case OrderStatus.PACKED:
       case OrderStatus.PROCESSING:
       case OrderStatus.CONFIRMED: return 'bg-amber-600';
+      case OrderStatus.CANCELLED: return 'bg-rose-600';
       default: return 'bg-stone-400';
     }
   }
