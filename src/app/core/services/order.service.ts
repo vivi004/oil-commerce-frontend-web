@@ -6,22 +6,52 @@ import { OrderStatus, normalizeOrderStatus } from '../enums/order-status.enum';
 import { PaymentStatus } from '../enums/payment-status.enum';
 import { CartItem } from '../models/cart.model';
 import { ApiService } from './api.service';
+import { TokenService } from './token.service';
 import { API_ENDPOINTS } from '../constants/api-endpoints.constants';
-
-const ORDERS_STORAGE_KEY = 'shopzone_orders_list';
-
-export const INITIAL_ORDERS: Order[] = [];
 
 @Injectable({ providedIn: 'root' })
 export class OrderService {
   private readonly api = inject(ApiService);
+  private readonly tokenService = inject(TokenService);
+
   private readonly _orders = signal<Order[]>(this.loadOrders());
   readonly orders = this._orders.asReadonly();
   readonly isSyncing = signal<boolean>(false);
   private channel?: BroadcastChannel;
 
   constructor() {
+    this.cleanupLegacyStorage();
     this.initCrossTabListener();
+  }
+
+  private cleanupLegacyStorage(): void {
+    if (typeof localStorage === 'undefined') return;
+    try {
+      localStorage.removeItem('shopzone_orders_list');
+      localStorage.removeItem('nisha_admin_orders_v1');
+    } catch {}
+  }
+
+  private getUserStorageKey(): string | null {
+    const user = this.tokenService.getUser();
+    if (!user || !user.id) return null;
+    return `nisha_user_orders_${user.id}`;
+  }
+
+  isDemoOrder(o: any): boolean {
+    if (!o) return true;
+    const name = String(o.shippingAddress?.fullName || o.customerName || '').toLowerCase().trim();
+    if (name.includes('ramesh kumar')) return true;
+
+    const address = String(o.shippingAddress?.addressLine1 || (typeof o.shippingAddress === 'string' ? o.shippingAddress : '')).toLowerCase();
+    if (address.includes('mill gate road') || address.includes('gandhipuram')) return true;
+
+    const orderNum = String(o.orderNumber || '').trim();
+    if (['ORD-2297-2026', 'ORD-6741-2026', 'ORD-4943-2026'].includes(orderNum)) return true;
+    if (['ord-9821', 'ord-8419', 'ord-7612', 'ord-8841', 'ord-8842', 'ord-8843'].includes(String(o.id))) return true;
+    if (orderNum.startsWith('NPO-2025-') || orderNum.startsWith('DEMO-')) return true;
+
+    return false;
   }
 
   private initCrossTabListener(): void {
@@ -80,7 +110,7 @@ export class OrderService {
     return this.api.get<any>(`/orders/${encodedId}`, options).pipe(
       map(res => {
         const dto = res?.data;
-        if (!dto) return null;
+        if (!dto || this.isDemoOrder(dto)) return null;
         const mapped = this.mapDtoToOrder(dto);
         this.updateOrderLocally(mapped);
         return mapped;
@@ -95,7 +125,6 @@ export class OrderService {
   getOrderById(id: string): Observable<Order | undefined> {
     const order = this._orders().find(o => o.id === id || o.orderNumber === id);
     if (order) {
-      // Background re-fetch silently to ensure fresh data
       this.fetchLiveOrder(id, true).subscribe();
       return of(order);
     }
@@ -105,6 +134,7 @@ export class OrderService {
   }
 
   updateOrderLocally(order: Order): void {
+    if (this.isDemoOrder(order)) return;
     const current = this._orders();
     const index = current.findIndex(o => o.id === order.id || o.orderNumber === order.orderNumber);
     let updated: Order[];
@@ -118,32 +148,44 @@ export class OrderService {
     this.saveOrders(updated);
   }
 
+  clearOrders(): void {
+    const key = this.getUserStorageKey();
+    if (key && typeof localStorage !== 'undefined') {
+      try { localStorage.removeItem(key); } catch {}
+    }
+    this._orders.set([]);
+  }
+
   syncLiveOrders(silent: boolean = true): Observable<Order[]> {
+    const user = this.tokenService.getUser();
+    const token = this.tokenService.getAccessToken();
+
+    // If unauthenticated, clear orders and return empty
+    if (!user || !token) {
+      this._orders.set([]);
+      this.isSyncing.set(false);
+      return of([]);
+    }
+
     this.isSyncing.set(true);
     const options = silent ? { headers: { 'X-Silent': 'true' } } : undefined;
     return this.api.get<any>(API_ENDPOINTS.ORDERS.LIST, options).pipe(
       map(res => {
-        const items = res?.data?.items || res?.data;
-        if (Array.isArray(items) && items.length > 0) {
-          const mappedFromBackend: Order[] = items.map((dto: any) => this.mapDtoToOrder(dto));
-          const localOrders = this.loadOrders();
-          const backendIds = new Set(mappedFromBackend.map(o => o.id));
-          const merged = [...mappedFromBackend, ...localOrders.filter(o => !backendIds.has(o.id))];
-          this._orders.set(merged);
-          this.saveOrders(merged);
-          this.isSyncing.set(false);
-          return merged;
-        }
-        const refreshed = this.loadOrders();
-        this._orders.set(refreshed);
+        const rawItems = res?.data?.items ?? (Array.isArray(res?.data) ? res.data : []);
+        const items = Array.isArray(rawItems) ? rawItems : [];
+        const cleanItems = items.filter((dto: any) => !this.isDemoOrder(dto));
+        const mappedFromBackend: Order[] = cleanItems.map((dto: any) => this.mapDtoToOrder(dto));
+
+        this._orders.set(mappedFromBackend);
+        this.saveOrders(mappedFromBackend);
         this.isSyncing.set(false);
-        return refreshed;
+        return mappedFromBackend;
       }),
       catchError(() => {
-        const refreshed = this.loadOrders();
-        this._orders.set(refreshed);
+        const cached = this.loadOrders();
+        this._orders.set(cached);
         this.isSyncing.set(false);
-        return of(refreshed);
+        return of(cached);
       })
     );
   }
@@ -159,11 +201,14 @@ export class OrderService {
     shippingAddress: ShippingAddress;
     paymentMethod: string;
   }): Observable<Order> {
+    const user = this.tokenService.getUser();
+    const userId = user?.id ? String(user.id) : 'customer';
     const orderNum = `ORD-${Math.floor(1000 + Math.random() * 9000)}-${new Date().getFullYear()}`;
+
     const localOrder: Order = {
       id: `ord-${Date.now()}`,
       orderNumber: orderNum,
-      userId: 'customer',
+      userId: userId,
       status: OrderStatus.CONFIRMED,
       paymentStatus: PaymentStatus.SUCCESS,
       paymentMethod: params.paymentMethod,
@@ -221,6 +266,7 @@ export class OrderService {
         totalPrice: item.totalPrice
       }))
     };
+
     interface OrderResponseDto {
       id?: string | number;
       orderNumber?: string;
@@ -241,16 +287,16 @@ export class OrderService {
           userId: dto?.userId ? String(dto.userId) : localOrder.userId,
           status: dto?.status || localOrder.status,
           paymentStatus: dto?.paymentStatus || localOrder.paymentStatus,
-          createdAt: dto?.createdAt ? new Date(typeof dto.createdAt === 'number' ? dto.createdAt * 1000 : dto.createdAt).toISOString() : localOrder.createdAt,
-          updatedAt: dto?.updatedAt ? new Date(typeof dto.updatedAt === 'number' ? dto.updatedAt * 1000 : dto.updatedAt).toISOString() : localOrder.updatedAt
+          createdAt: this.parseDate(dto?.createdAt) ?? localOrder.createdAt,
+          updatedAt: this.parseDate(dto?.updatedAt) ?? localOrder.updatedAt
         };
-        const updated = [mappedOrder, ...this._orders()];
+        const updated = [mappedOrder, ...this._orders().filter(o => o.id !== mappedOrder.id && o.orderNumber !== mappedOrder.orderNumber)];
         this._orders.set(updated);
         this.saveOrders(updated);
         return mappedOrder;
       }),
       catchError(() => {
-        const updated = [localOrder, ...this._orders()];
+        const updated = [localOrder, ...this._orders().filter(o => o.id !== localOrder.id)];
         this._orders.set(updated);
         this.saveOrders(updated);
         return of(localOrder);
@@ -258,11 +304,55 @@ export class OrderService {
     );
   }
 
+  private parseDate(val: any): string | undefined {
+    if (!val) return undefined;
+    if (typeof val === 'number') {
+      const ms = val < 10000000000 ? val * 1000 : val;
+      return new Date(ms).toISOString();
+    }
+    if (typeof val === 'string') {
+      const trimmed = val.trim();
+      if (!trimmed) return undefined;
+      if (/^\d+(\.\d+)?$/.test(trimmed)) {
+        const num = Number(trimmed);
+        const ms = num < 10000000000 ? num * 1000 : num;
+        return new Date(ms).toISOString();
+      }
+      const d = new Date(trimmed);
+      return isNaN(d.getTime()) ? undefined : d.toISOString();
+    }
+    return undefined;
+  }
+
   private mapDtoToOrder(dto: any): Order {
+    let shippingAddressObj: any = dto.shippingAddress;
+    if (typeof shippingAddressObj === 'string') {
+      try {
+        shippingAddressObj = JSON.parse(shippingAddressObj);
+      } catch {
+        shippingAddressObj = null;
+      }
+    }
+
+    const user = this.tokenService.getUser();
+    const fallbackCustomerName = dto.customerName || (user?.firstName ? `${user.firstName} ${user.lastName || ''}`.trim() : null) || 'Customer';
+    const fallbackPhone = dto.customerPhone || user?.phone || '+91 98421 88990';
+
+    const resolvedAddress: ShippingAddress = {
+      fullName: shippingAddressObj?.fullName || fallbackCustomerName,
+      phone: shippingAddressObj?.phone || fallbackPhone,
+      addressLine1: shippingAddressObj?.addressLine1 || (typeof dto.shippingAddress === 'string' ? dto.shippingAddress : 'Coimbatore, Tamil Nadu'),
+      city: shippingAddressObj?.city || 'Coimbatore',
+      state: shippingAddressObj?.state || 'Tamil Nadu',
+      postalCode: shippingAddressObj?.postalCode || '641012',
+      country: shippingAddressObj?.country || 'India',
+      isDefault: true
+    };
+
     return {
       id: String(dto.id),
       orderNumber: dto.orderNumber || `ORD-${String(dto.id).substring(0, 8)}`,
-      userId: dto.userId ? String(dto.userId) : 'customer',
+      userId: dto.userId ? String(dto.userId) : (user?.id ? String(user.id) : 'customer'),
       status: normalizeOrderStatus(dto.status),
       paymentStatus: (dto.paymentStatus || PaymentStatus.SUCCESS) as PaymentStatus,
       paymentMethod: dto.paymentMethod || 'Online Payment',
@@ -278,16 +368,7 @@ export class OrderService {
         totalPrice: Number(i.totalPrice || (i.unitPrice * i.quantity) || 0),
         variantId: i.variantId
       })),
-      shippingAddress: typeof dto.shippingAddress === 'object' && dto.shippingAddress !== null ? dto.shippingAddress : {
-        fullName: dto.customerName || (typeof dto.shippingAddress === 'string' ? 'Store Customer' : 'Customer'),
-        phone: dto.customerPhone || '+91 98421 00000',
-        addressLine1: typeof dto.shippingAddress === 'string' ? dto.shippingAddress : 'Coimbatore, Tamil Nadu',
-        city: 'Coimbatore',
-        state: 'Tamil Nadu',
-        postalCode: '641012',
-        country: 'India',
-        isDefault: true
-      },
+      shippingAddress: resolvedAddress,
       subtotal: Number(dto.subtotal ?? dto.totalAmount ?? 0),
       shippingCost: Number(dto.shippingCost ?? 0),
       taxAmount: Number(dto.taxAmount ?? 0),
@@ -296,86 +377,41 @@ export class OrderService {
       total: Number(dto.grandTotal ?? dto.totalAmount ?? dto.total ?? 0),
       trackingNumber: dto.trackingNumber || undefined,
       carrier: dto.carrier || undefined,
-      estimatedDelivery: dto.estimatedDelivery ? new Date(dto.estimatedDelivery).toISOString() : undefined,
-      createdAt: dto.createdAt ? new Date(typeof dto.createdAt === 'number' ? dto.createdAt * 1000 : dto.createdAt).toISOString() : new Date().toISOString(),
-      updatedAt: dto.updatedAt ? new Date(typeof dto.updatedAt === 'number' ? dto.updatedAt * 1000 : dto.updatedAt).toISOString() : new Date().toISOString()
+      estimatedDelivery: this.parseDate(dto.estimatedDelivery),
+      createdAt: this.parseDate(dto.createdAt) ?? new Date().toISOString(),
+      updatedAt: this.parseDate(dto.updatedAt) ?? new Date().toISOString()
     };
   }
 
-  private loadOrders(): Order[] {
-    let orders: Order[] = [];
-    const demoIds = new Set(['ord-9821', 'ord-8419', 'ord-7612', 'ord-8841', 'ord-8842', 'ord-8843']);
+  loadOrders(): Order[] {
+    this.cleanupLegacyStorage();
+    const key = this.getUserStorageKey();
+    if (!key || typeof localStorage === 'undefined') return [];
+
     try {
-      const data = localStorage.getItem(ORDERS_STORAGE_KEY);
+      const data = localStorage.getItem(key);
       if (data) {
         const parsed = JSON.parse(data);
         if (Array.isArray(parsed)) {
-          orders = parsed
-            .filter(o => !demoIds.has(o.id) && !o.orderNumber?.startsWith?.('NPO-2025-') && !o.orderNumber?.startsWith?.('DEMO-'))
+          return parsed
+            .filter(o => !this.isDemoOrder(o))
             .map(o => ({
               ...o,
               status: normalizeOrderStatus(o.status)
             }));
-          this.saveOrders(orders);
         }
       }
-
-      // Sync status/tracking from admin panel if present in browser storage
-      const adminOrdersRaw = localStorage.getItem('nisha_admin_orders_v1');
-      if (adminOrdersRaw) {
-        const adminOrders = JSON.parse(adminOrdersRaw);
-        if (Array.isArray(adminOrders)) {
-          const adminMap = new Map<string, any>();
-          for (const ao of adminOrders) {
-            if (ao.id) adminMap.set(ao.id, ao);
-            if (ao.orderNumber) adminMap.set(ao.orderNumber, ao);
-          }
-
-          orders = orders.map(ord => {
-            const adminMatch = adminMap.get(ord.id) || adminMap.get(ord.orderNumber);
-            if (adminMatch) {
-              return {
-                ...ord,
-                status: normalizeOrderStatus(adminMatch.status || ord.status),
-                trackingNumber: adminMatch.trackingNumber || ord.trackingNumber,
-                carrier: adminMatch.carrier || ord.carrier,
-                updatedAt: adminMatch.updatedAt || ord.updatedAt
-              };
-            }
-            return ord;
-          });
-        }
-      }
-
-      const lastUpdateRaw = localStorage.getItem('nisha_last_order_update');
-      if (lastUpdateRaw) {
-        const lastUp = JSON.parse(lastUpdateRaw);
-        if (lastUp && (lastUp.orderId || lastUp.orderNumber)) {
-          orders = orders.map(ord => {
-            if ((lastUp.orderId && ord.id === lastUp.orderId) || (lastUp.orderNumber && ord.orderNumber === lastUp.orderNumber)) {
-              return {
-                ...ord,
-                status: normalizeOrderStatus(lastUp.status || ord.status),
-                trackingNumber: lastUp.trackingNumber || ord.trackingNumber,
-                carrier: lastUp.carrier || ord.carrier,
-                updatedAt: new Date().toISOString()
-              };
-            }
-            return ord;
-          });
-        }
-      }
-    } catch (_err) {
-      // Ignore JSON parse errors and return fallback
-    }
-    return orders;
+    } catch {}
+    return [];
   }
 
   private saveOrders(orders: Order[]): void {
+    if (typeof localStorage === 'undefined') return;
+    const key = this.getUserStorageKey();
+    if (!key) return;
     try {
-      localStorage.setItem(ORDERS_STORAGE_KEY, JSON.stringify(orders));
-    } catch (_err) {
-      // Ignore storage write errors
-    }
+      const clean = orders.filter(o => !this.isDemoOrder(o));
+      localStorage.setItem(key, JSON.stringify(clean));
+    } catch {}
   }
 }

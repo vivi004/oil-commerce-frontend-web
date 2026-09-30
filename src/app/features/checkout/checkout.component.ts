@@ -11,6 +11,8 @@ import { MatDividerModule } from '@angular/material/divider';
 import { ToastrService } from 'ngx-toastr';
 import { CartService } from '../../core/services/cart.service';
 import { OrderService } from '../../core/services/order.service';
+import { TokenService } from '../../core/services/token.service';
+import { ApiService } from '../../core/services/api.service';
 import { ShippingAddress } from '../../core/models/order.model';
 import { EmptyStateComponent } from '../../shared/components/empty-state/empty-state.component';
 
@@ -39,11 +41,11 @@ import { EmptyStateComponent } from '../../shared/components/empty-state/empty-s
                   <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
                     <mat-form-field appearance="outline">
                       <mat-label>Full Name</mat-label>
-                      <input matInput formControlName="fullName" placeholder="e.g. Ramesh Kumar" />
+                      <input matInput formControlName="fullName" placeholder="Enter full name" />
                     </mat-form-field>
                     <mat-form-field appearance="outline">
                       <mat-label>Phone Number (10 digits)</mat-label>
-                      <input matInput formControlName="phone" placeholder="98421 88990" />
+                      <input matInput formControlName="phone" placeholder="9842188990" />
                     </mat-form-field>
                   </div>
 
@@ -224,6 +226,8 @@ export class CheckoutComponent implements OnInit {
   private readonly toastr = inject(ToastrService);
   readonly cartService = inject(CartService);
   private readonly orderService = inject(OrderService);
+  private readonly tokenService = inject(TokenService);
+  private readonly api = inject(ApiService);
 
   readonly paymentMethod = signal('upi');
   isPlacingOrder = false;
@@ -238,14 +242,41 @@ export class CheckoutComponent implements OnInit {
   addressForm!: FormGroup;
 
   ngOnInit(): void {
+    const user = this.tokenService.getUser();
+    const fullName = user?.firstName ? `${user.firstName} ${user.lastName || ''}`.trim() : '';
+    const rawPhone = user?.phone || '';
+    const phoneDigits = rawPhone.replace(/[^0-9]/g, '');
+    const phone = phoneDigits.length >= 10 ? phoneDigits.slice(-10) : '';
+
     this.addressForm = this.fb.group({
-      fullName:     ['Ramesh Kumar', Validators.required],
-      phone:        ['9842188990', [Validators.required, Validators.pattern('^[0-9]{10}$')]],
-      addressLine1: ['124/A, Mill Gate Road, Gandhipuram', Validators.required],
-      city:         ['Erode', Validators.required],
+      fullName:     [fullName, Validators.required],
+      phone:        [phone, [Validators.required, Validators.pattern('^[0-9]{10}$')]],
+      addressLine1: ['', Validators.required],
+      city:         ['Coimbatore', Validators.required],
       state:        ['Tamil Nadu', Validators.required],
-      postalCode:   ['638107', Validators.required],
+      postalCode:   ['641012', Validators.required],
     });
+
+    if (this.tokenService.getAccessToken()) {
+      this.api.get<any[]>('/addresses').subscribe({
+        next: (res) => {
+          const addrs = Array.isArray(res?.data) ? res.data : [];
+          const defaultAddr = addrs.find((a: any) => a.isDefault) || addrs[0];
+          if (defaultAddr) {
+            const addrPhone = defaultAddr.phone ? defaultAddr.phone.replace(/[^0-9]/g, '').slice(-10) : phone;
+            this.addressForm.patchValue({
+              fullName: defaultAddr.fullName || fullName,
+              phone: addrPhone,
+              addressLine1: defaultAddr.addressLine1 || defaultAddr.address || '',
+              city: defaultAddr.city || 'Coimbatore',
+              state: defaultAddr.state || 'Tamil Nadu',
+              postalCode: defaultAddr.postalCode || '641012',
+            });
+          }
+        },
+        error: () => {}
+      });
+    }
   }
 
   getSelectedPaymentLabel(): string {

@@ -120,6 +120,13 @@ export class AuthService {
   // ── Helpers ───────────────────────────────────────────────────────────────────
 
   private clearAuthState(): void {
+    const user = this.tokenService.getUser();
+    if (typeof localStorage !== 'undefined') {
+      try {
+        if (user?.id) localStorage.removeItem(`nisha_user_orders_${user.id}`);
+        localStorage.removeItem('shopzone_orders_list');
+      } catch {}
+    }
     this.tokenService.clearTokens();
     this.store.dispatch(AuthActions.logout());
     this.router.navigateByUrl(APP_CONSTANTS.ROUTES.LOGIN);

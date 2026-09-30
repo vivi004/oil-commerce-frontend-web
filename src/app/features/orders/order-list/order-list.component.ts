@@ -1,11 +1,10 @@
-import { Component, inject, signal, OnInit } from '@angular/core';
+import { Component, inject, OnInit } from '@angular/core';
 import { RouterLink } from '@angular/router';
 import { SlicePipe } from '@angular/common';
 import { MatButtonModule } from '@angular/material/button';
 import { MatIconModule } from '@angular/material/icon';
 import { MatChipsModule } from '@angular/material/chips';
 import { OrderService } from '../../../core/services/order.service';
-import { Order } from '../../../core/models/order.model';
 import { OrderStatus, normalizeOrderStatus } from '../../../core/enums/order-status.enum';
 import { EmptyStateComponent } from '../../../shared/components/empty-state/empty-state.component';
 
@@ -18,7 +17,7 @@ import { EmptyStateComponent } from '../../../shared/components/empty-state/empt
         <div>
           <span class="text-xs font-extrabold uppercase tracking-wider text-amber-700 block mb-1">Purchase History</span>
           <h1 class="font-['Outfit',sans-serif] text-2xl sm:text-3xl lg:text-4xl font-extrabold text-stone-900 m-0">My Orders</h1>
-          <p class="text-sm sm:text-base text-stone-500 mt-1">Track, return, or buy again from your previous cold-pressed oil orders</p>
+          <p class="text-sm sm:text-base text-stone-500 mt-1">Track, return, or buy again from your authentic cold-pressed oil orders</p>
         </div>
         <div>
           <button
@@ -50,7 +49,7 @@ import { EmptyStateComponent } from '../../../shared/components/empty-state/empt
                 </div>
                 <div class="flex flex-col gap-1">
                   <span class="text-[11px] font-bold text-stone-400 uppercase tracking-wider">SHIP TO</span>
-                  <span class="font-semibold text-stone-800 truncate">{{ order.shippingAddress.fullName }}</span>
+                  <span class="font-semibold text-stone-800 truncate">{{ order.shippingAddress?.fullName || 'Customer' }}</span>
                 </div>
                 <div class="flex flex-col md:items-end gap-1 md:ml-auto">
                   <span class="font-['Outfit',sans-serif] font-extrabold text-stone-900">#{{ order.orderNumber }}</span>
@@ -86,7 +85,9 @@ import { EmptyStateComponent } from '../../../shared/components/empty-state/empt
                         <span class="text-xs text-stone-500 font-medium">
                           Qty: {{ item.quantity }} × ₹{{ item.unitPrice }}
                         </span>
-                        <span class="text-[11px] text-stone-400">SKU: {{ item.sku }}</span>
+                        @if (item.sku) {
+                          <span class="text-[11px] text-stone-400">SKU: {{ item.sku }}</span>
+                        }
                       </div>
                     </div>
                   }
@@ -108,7 +109,7 @@ import { EmptyStateComponent } from '../../../shared/components/empty-state/empt
         <app-empty-state
           emoji="📦"
           title="No orders placed yet"
-          description="Your order history will appear here once you make your first purchase."
+          description="Your real-time order history will appear here once you make your first purchase."
           actionText="Discover Products"
           actionLink="/products"
         />
@@ -119,16 +120,14 @@ import { EmptyStateComponent } from '../../../shared/components/empty-state/empt
 })
 export class OrderListComponent implements OnInit {
   readonly orderService = inject(OrderService);
-  readonly orders = signal<Order[]>([]);
+  readonly orders = this.orderService.orders;
 
   ngOnInit(): void {
     this.syncLive();
   }
 
   syncLive(): void {
-    this.orderService.syncLiveOrders().subscribe(res => {
-      this.orders.set(res);
-    });
+    this.orderService.syncLiveOrders(false).subscribe();
   }
 
   getStatusLabel(status: OrderStatus | string): string {

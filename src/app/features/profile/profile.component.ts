@@ -70,7 +70,7 @@ import { OrderService } from '../../core/services/order.service';
                 <img [src]="currentUser()!.avatar" alt="Profile picture" class="w-full h-full object-cover" />
               } @else {
                 <span class="text-3xl font-bold text-white font-['Outfit',sans-serif]">
-                  {{ (currentUser()?.firstName?.[0] ?? 'A') + (currentUser()?.lastName?.[0] ?? 'M') }}
+                  {{ (currentUser()?.firstName?.[0] || 'U') + (currentUser()?.lastName?.[0] || '') }}
                 </span>
               }
             </div>
@@ -79,13 +79,13 @@ import { OrderService } from '../../core/services/order.service';
             </button>
             <div class="w-full">
               <p class="font-['Outfit',sans-serif] text-lg font-bold text-stone-900">
-                {{ currentUser()?.firstName ?? 'Alex' }} {{ currentUser()?.lastName ?? 'Morgan' }}
+                {{ (currentUser()?.firstName ? (currentUser()?.firstName + ' ' + (currentUser()?.lastName || '')) : 'Valued Customer') }}
               </p>
               <p class="text-xs sm:text-sm text-stone-500 mt-0.5 mb-3">
-                {{ currentUser()?.email ?? 'alex.morgan@example.com' }}
+                {{ currentUser()?.email || '' }}
               </p>
               <div class="inline-flex items-center gap-1.5 px-3.5 py-1 rounded-full bg-amber-50 text-amber-800 border border-amber-200 text-xs font-bold">
-                <span>⭐ Gold Tier Member</span>
+                <span>⭐ Pure Oils Member</span>
               </div>
             </div>
           </div>
@@ -93,9 +93,9 @@ import { OrderService } from '../../core/services/order.service';
           <!-- Quick Rewards Widget -->
           <div class="bg-gradient-to-br from-amber-500/10 via-amber-50 to-stone-50 rounded-3xl border border-amber-200/80 p-6 shadow-xs">
             <h4 class="text-xs font-extrabold uppercase tracking-wider text-amber-800 mb-1">Nisha Pure Rewards</h4>
-            <div class="font-['Outfit',sans-serif] text-3xl font-extrabold text-amber-700 mb-1">1,480 pts</div>
+            <div class="font-['Outfit',sans-serif] text-3xl font-extrabold text-amber-700 mb-1">{{ totalOrdersCount() * 50 }} pts</div>
             <p class="text-xs text-stone-600 leading-relaxed mb-4">
-              1,480 points available. Redeem ₹150 off on your next pure wood-pressed oil order!
+              {{ totalOrdersCount() * 50 }} reward points earned from your authentic wood-pressed oil purchases.
             </p>
             <button mat-stroked-button color="primary" class="w-full !rounded-full !font-bold">
               Redeem Rewards
@@ -258,20 +258,17 @@ export class ProfileComponent implements OnInit {
   readonly currentUser = toSignal(this.store.select(selectCurrentUser));
 
   readonly totalOrdersCount = computed(() => {
-    const list = this.orderService.orders();
-    return list.length > 0 ? list.length : 14;
+    return this.orderService.orders().length;
   });
 
   readonly totalSpend = computed(() => {
     const list = this.orderService.orders();
-    const sum = list.reduce((acc, curr) => acc + (Number(curr.total) || 0), 0);
-    return sum > 0 ? sum : 8420;
+    return list.reduce((acc, curr) => acc + (Number(curr.total) || 0), 0);
   });
 
   readonly totalSaved = computed(() => {
     const list = this.orderService.orders();
-    const sum = list.reduce((acc, curr) => acc + (Number(curr.discountAmount) || 0), 0);
-    return sum > 0 ? sum : 1480;
+    return list.reduce((acc, curr) => acc + (Number(curr.discountAmount) || 0), 0);
   });
 
   profileForm!: FormGroup;
@@ -346,15 +343,15 @@ export class ProfileComponent implements OnInit {
   };
 
   ngOnInit(): void {
-    // Initial live sync for latest customer orders & purchase records
+    // Initial live sync for authentic customer orders & purchase records
     this.orderService.syncLiveOrders().subscribe({ error: () => {} });
 
     const user = this.currentUser();
     this.profileForm = this.fb.group({
-      firstName: [user?.firstName ?? 'Alex', Validators.required],
-      lastName:  [user?.lastName ?? 'Morgan', Validators.required],
-      email:     [{ value: user?.email ?? 'alex.morgan@example.com', disabled: true }],
-      phone:     [user?.phone ?? '+91 98765 43210'],
+      firstName: [user?.firstName ?? '', Validators.required],
+      lastName:  [user?.lastName ?? '', Validators.required],
+      email:     [{ value: user?.email ?? '', disabled: true }],
+      phone:     [user?.phone ?? ''],
       gender:    ['male'],
       bio:       ['Passionate about pure, traditional cold-pressed cooking oils.'],
     });
