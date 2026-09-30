@@ -5,6 +5,7 @@ import { MatButtonModule } from '@angular/material/button';
 import { MatIconModule } from '@angular/material/icon';
 import { Subscription, interval } from 'rxjs';
 import { switchMap } from 'rxjs/operators';
+import { NgxSpinnerService } from 'ngx-spinner';
 import { OrderService } from '../../../core/services/order.service';
 import { Order } from '../../../core/models/order.model';
 import { OrderStatus, normalizeOrderStatus } from '../../../core/enums/order-status.enum';
@@ -137,6 +138,7 @@ interface StepDisplay {
 export class OrderTrackingComponent implements OnInit, OnDestroy {
   private readonly route = inject(ActivatedRoute);
   private readonly orderService = inject(OrderService);
+  private readonly spinner = inject(NgxSpinnerService);
 
   readonly orderId = signal<string>('');
   readonly order = signal<Order | null>(null);
@@ -147,6 +149,9 @@ export class OrderTrackingComponent implements OnInit, OnDestroy {
   private storageListener?: (e: StorageEvent) => void;
 
   ngOnInit(): void {
+    // Dismiss any active spinner so tracking view is never blocked
+    this.spinner.hide();
+
     this.route.paramMap.subscribe(params => {
       const id = params.get('id') ?? 'ord-9821';
       this.orderId.set(id);
@@ -156,15 +161,15 @@ export class OrderTrackingComponent implements OnInit, OnDestroy {
         if (ord) this.applyOrder(ord);
       });
 
-      // 2. Immediate live fetch from backend
-      this.orderService.fetchLiveOrder(id).subscribe(ord => {
+      // 2. Immediate live fetch from backend (silently in background)
+      this.orderService.fetchLiveOrder(id, true).subscribe(ord => {
         if (ord) this.applyOrder(ord);
       });
 
-      // 3. Fast real-time live polling every 2.5 seconds
+      // 3. Fast real-time live polling silently every 4 seconds in background
       this.pollSub?.unsubscribe();
-      this.pollSub = interval(2500).pipe(
-        switchMap(() => this.orderService.fetchLiveOrder(id))
+      this.pollSub = interval(4000).pipe(
+        switchMap(() => this.orderService.fetchLiveOrder(id, true))
       ).subscribe(ord => {
         if (ord) this.applyOrder(ord);
       });
@@ -184,7 +189,7 @@ export class OrderTrackingComponent implements OnInit, OnDestroy {
               this.order()?.id === orderId ||
               this.order()?.orderNumber === orderNumber
             ) {
-              this.orderService.fetchLiveOrder(currentId).subscribe(ord => {
+              this.orderService.fetchLiveOrder(currentId, true).subscribe(ord => {
                 if (ord) this.applyOrder(ord);
               });
             }
@@ -206,7 +211,7 @@ export class OrderTrackingComponent implements OnInit, OnDestroy {
               this.order()?.id === parsed.orderId ||
               this.order()?.orderNumber === parsed.orderNumber
             ) {
-              this.orderService.fetchLiveOrder(currentId).subscribe(ord => {
+              this.orderService.fetchLiveOrder(currentId, true).subscribe(ord => {
                 if (ord) this.applyOrder(ord);
               });
             }

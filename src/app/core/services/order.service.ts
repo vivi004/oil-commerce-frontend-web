@@ -74,9 +74,10 @@ export class OrderService {
     return of(this._orders());
   }
 
-  fetchLiveOrder(id: string): Observable<Order | null> {
+  fetchLiveOrder(id: string, silent: boolean = true): Observable<Order | null> {
     const encodedId = encodeURIComponent(id.trim());
-    return this.api.get<any>(`/orders/${encodedId}`).pipe(
+    const options = silent ? { headers: { 'X-Silent': 'true' } } : undefined;
+    return this.api.get<any>(`/orders/${encodedId}`, options).pipe(
       map(res => {
         const dto = res?.data;
         if (!dto) return null;
@@ -94,11 +95,11 @@ export class OrderService {
   getOrderById(id: string): Observable<Order | undefined> {
     const order = this._orders().find(o => o.id === id || o.orderNumber === id);
     if (order) {
-      // Background re-fetch to ensure fresh data
-      this.fetchLiveOrder(id).subscribe();
+      // Background re-fetch silently to ensure fresh data
+      this.fetchLiveOrder(id, true).subscribe();
       return of(order);
     }
-    return this.fetchLiveOrder(id).pipe(
+    return this.fetchLiveOrder(id, true).pipe(
       map(ord => ord ?? undefined)
     );
   }
@@ -117,9 +118,10 @@ export class OrderService {
     this.saveOrders(updated);
   }
 
-  syncLiveOrders(): Observable<Order[]> {
+  syncLiveOrders(silent: boolean = true): Observable<Order[]> {
     this.isSyncing.set(true);
-    return this.api.get<any>(API_ENDPOINTS.ORDERS.LIST).pipe(
+    const options = silent ? { headers: { 'X-Silent': 'true' } } : undefined;
+    return this.api.get<any>(API_ENDPOINTS.ORDERS.LIST, options).pipe(
       map(res => {
         const items = res?.data?.items || res?.data;
         if (Array.isArray(items) && items.length > 0) {
